@@ -176,14 +176,35 @@ class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
             self.pushButton_pu.clicked.connect(self.open_pu)
             self.pushButton_replace.clicked.connect(self.replace)
             self.pushButton_save.clicked.connect(self.update)
-        print('1')
         self.show()
     
     def update(self):
         self.close()
     
     def insert(self):
-        self.close()
+        if self.comboBox_house.currentText()!='' and self.lineEdit_entrance.text()!='':           
+            # print(self.list_id_house[self.comboBox_house.currentIndex()])
+            # print(self.lineEdit_entrance.text())
+            # print(self.lineEdit_host.text())
+            # print(self.lineEdit_port.text())
+            # print(self.lineEdit_login.text())
+            # print(self.lineEdit_pasw.text())
+            cur = self.conn.cursor()
+            sql_query = """INSERT INTO count.kpu(id_house, num_entr, ip_rassbery, 
+                                                port_rassbery, login_user, pwd_user)                                                                                             
+                        VALUES (%s, %s, %s, %s, %s, %s)"""
+            cur.execute(sql_query, (str(self.list_id_house[self.comboBox_house.currentIndex()]), str(self.lineEdit_entrance.text()), str(self.lineEdit_host.text()), str(self.lineEdit_port.text()), str(self.lineEdit_login.text()), str(self.lineEdit_pasw.text())))        
+
+            cur.close()                
+#           self.conn.commit()
+            self.close()
+        else:         
+            pal = self.label_error.palette()
+            pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
+            self.label_error.setPalette(pal)
+            self.label_error.setText("Укажите номер дома и подъезда")
+#            self.resize(self.label_error.sizeHint())         
+            self.label_error.show()
 
     def open_pu(self):
         self.pu = pu.Pu()
