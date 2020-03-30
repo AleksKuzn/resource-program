@@ -174,6 +174,8 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             self.setWindowTitle('Добавить СКАУТ')
             self.pushButton_kpu.hide()
             self.pushButton_save.clicked.connect(self.insert)
+            self.comboBox_city.setCurrentText('Обнинск')
+            self.comboBox_street.setCurrentText('Поленова')
         if id_scaut!='-1':      
             self.setWindowTitle('информация СКАУТ')
             self.pushButton_kpu.show()
@@ -266,13 +268,26 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         self.close()
         
     def insert(self):
-        cur = self.conn.cursor()
         sql_query = """INSERT INTO public.entrance(id_house, num_entr, ip_rassbery, 
                                                 port_rassbery, login_user, pwd_user)                                                                                             
                         VALUES (%s,%s,%s, %s, %s, %s)"""
-        if self.comboBox_house.currentText()!='' and self.lineEdit_entrance!='':           
-            print(self.list_id_house[self.comboBox_house.currentIndex()])
-            cur.execute(sql_query, (self.list_id_house[self.comboBox_house.currentIndex()], self.lineEdit_entrance.text(), self.lineEdit_host.text(), self.lineEdit_port.text(), self.lineEdit_login.text(), self.lineEdit_pasw.text()))        
+                      
+        if self.comboBox_house.currentText()!='' and self.lineEdit_entrance.text()!='':           
+            # print(self.list_id_house[self.comboBox_house.currentIndex()])
+            # print(self.lineEdit_entrance.text())
+            # print(self.lineEdit_host.text())
+            # print(self.lineEdit_port.text())
+            # print(self.lineEdit_login.text())
+            # print(self.lineEdit_pasw.text())
+            cur = self.conn.cursor()
+            sql_query = """INSERT INTO public.entrance(id_house, num_entr, ip_rassbery, 
+                                                port_rassbery, login_user, pwd_user)                                                                                             
+                        VALUES (%s,%s,%s, %s, %s, %s)"""
+            cur.execute(sql_query, (str(self.list_id_house[self.comboBox_house.currentIndex()]), str(self.lineEdit_entrance.text()), str(self.lineEdit_host.text()), str(self.lineEdit_port.text()), str(self.lineEdit_login.text()), str(self.lineEdit_pasw.text())))        
+
+            # sql_query = "INSERT INTO public.entrance(id_house) VALUES (" + str(self.list_id_house[self.comboBox_house.currentIndex()]) + ")"             
+            # print(sql_query)
+            # cur.execute(sql_query)                   
             cur.close()                
 #           self.conn.commit()
             self.close()
