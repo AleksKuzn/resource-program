@@ -130,7 +130,7 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
                         self.sql_query = self.sql_query + " WHERE entrance.id_entr = " + str(self.list_id_entrace[self.comboBox_entrance.currentIndex()])
                     else:                    
                         self.sql_query = self.sql_query + " WHERE house.id_house = " + str(self.list_id_house[self.comboBox_house.currentIndex()])
-                else: 
+                else:
                     self.sql_query = self.sql_query + " WHERE street.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) 
             else:   
                 self.sql_query = self.sql_query + " WHERE city.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()]) 
@@ -165,7 +165,8 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
     def __init__(self, id_scaut, conn):
         super().__init__()
         self.setupUi(self)
-        self.id_scaut = id_scaut       
+        self.id_scaut = id_scaut 
+        self.label_error.hide()
         self.conn = conn 
         self.filtr_city()       
         cur = self.conn.cursor()            
@@ -204,12 +205,7 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             self.comboBox_street.setCurrentText(data[0][1])
             self.comboBox_street.model().item(0).setEnabled(False)
             self.comboBox_house.setCurrentText(data[0][2])
-            self.comboBox_house.model().item(0).setEnabled(False)
-#            self.filtr_city(data[0][0])
-#            self.filtr_street(data[0][1])
-#            self.filtr_house(data[0][2])
-#            self.lineEdit_street.setText(data[0][1])
-#            self.lineEdit_house.setText(data[0][2])
+            self.comboBox_house.model().item(0).setEnabled(False)          
             self.lineEdit_entrance.setText(str(data[0][3]))
             self.lineEdit_login.setText(data[0][4])
             self.lineEdit_pasw.setText(data[0][5])
@@ -271,13 +267,23 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         
     def insert(self):
         cur = self.conn.cursor()
-        sql_query = """INSERT INTO public.entrance(ip_rassbery, port_rassbery, login_user, pwd_user)                                                                                             
-                        VALUES (%s, %s, %s, %s)"""
-        cur.execute(sql_query, (self.lineEdit_host, self.lineEdit_port, self.lineEdit_login, self.lineEdit_pasw))        
-#        self.conn.commit()
-        cur.close()        
-        self.close()
-        
+        sql_query = """INSERT INTO public.entrance(id_house, num_entr, ip_rassbery, 
+                                                port_rassbery, login_user, pwd_user)                                                                                             
+                        VALUES (%s,%s,%s, %s, %s, %s)"""
+        if self.comboBox_house.currentText()!='' and self.lineEdit_entrance!='':           
+            print(self.list_id_house[self.comboBox_house.currentIndex()])
+            cur.execute(sql_query, (self.list_id_house[self.comboBox_house.currentIndex()], self.lineEdit_entrance.text(), self.lineEdit_host.text(), self.lineEdit_port.text(), self.lineEdit_login.text(), self.lineEdit_pasw.text()))        
+            cur.close()                
+#           self.conn.commit()
+            self.close()
+        else:         
+            pal = self.label_error.palette()
+            pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
+            self.label_error.setPalette(pal)
+            self.label_error.setText("Укажите номер дома и подъезда")
+#            self.resize(self.label_error.sizeHint())         
+            self.label_error.show()
+       
     def open_kpu(self):
         self.kpu = kpu.Kpu(self.conn, self.id_entr)
         #self.close()
