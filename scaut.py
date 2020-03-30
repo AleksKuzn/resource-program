@@ -226,52 +226,15 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         # print(sql_query)               
         # cur.execute(sql_query) 
         sql_query = """UPDATE public.entrance
-                       SET login_user=%s                                                                                             
+                       SET id_house=%s, num_entr=%s, ip_rassbery=%s, port_rassbery=%s, login_user=%s, pwd_user=%s                                                                                             
                        WHERE id_entr=%s""" 
-        cur.execute(sql_query, (self.lineEdit_login.text(), self.id_entr))        
-        
-        # sql_query = """INSERT INTO public.entrance(ip_rassbery, port_rassbery, login_user, pwd_user)                                                                                             
-                       # VALUES (%s, %s, %s, %s)"""
-        # cur.execute(sql_query, (self.lineEdit_host, self.lineEdit_port, self.lineEdit_login, self.lineEdit_pasw))        
+        cur.execute(sql_query, (self.list_id_house[self.comboBox_house.currentIndex()], self.lineEdit_entrance.text(), self.lineEdit_host.text(), self.lineEdit_port.text(), self.lineEdit_login.text(), self.lineEdit_pasw.text(), self.id_entr))        
         
 #        self.conn.commit()
-        cur.close()
-        
-        # sql_query = """INSERT INTO public.entrance(
-                                    # id_house, num_entr, ip_rassbery, 
-                                    # port_rassbery, login_user, pwd_user)                                                                                             
-                            # VALUES ((SELECT id_house 
-                                     # FROM public.house 
-                                     # WHERE house.house_number = %s), 
-                                     # %s, %s, %s, %s, %s);"""
-            # cur.execute(sql_query, (self.lineEdit_house, self.lineEdit_entrance, self.lineEdit_host, self.lineEdit_port, self.lineEdit_login, self.lineEdit_pasw))        
-            # conn.commit()
-            # cur.close()
-            
-        # INSERT INTO public.entrance(
-            # id_house, num_entr, ip_rassbery, port_rassbery)
-            # VALUES (
-            # (SELECT id_house
-          # FROM public.house
-          # WHERE house_number = '9' and id_street = (SELECT id_street FROM public.street WHERE street_name = 'Поленова')),
-            # 2,3,4);
-            
-        # self.lineEdit_city
-        # self.lineEdit_street
-        # self.lineEdit_house
-        # self.lineEdit_entrance
-        # self.lineEdit_login
-        # self.lineEdit_pasw
-        # self.lineEdit_host
-        # self.lineEdit_port
-        
+        cur.close()                 
         self.close()
         
-    def insert(self):
-        sql_query = """INSERT INTO public.entrance(id_house, num_entr, ip_rassbery, 
-                                                port_rassbery, login_user, pwd_user)                                                                                             
-                        VALUES (%s,%s,%s, %s, %s, %s)"""
-                      
+    def insert(self):                  
         if self.comboBox_house.currentText()!='' and self.lineEdit_entrance.text()!='':           
             # print(self.list_id_house[self.comboBox_house.currentIndex()])
             # print(self.lineEdit_entrance.text())
@@ -282,12 +245,13 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             cur = self.conn.cursor()
             sql_query = """INSERT INTO public.entrance(id_house, num_entr, ip_rassbery, 
                                                 port_rassbery, login_user, pwd_user)                                                                                             
-                        VALUES (%s,%s,%s, %s, %s, %s)"""
+                        VALUES (%s, %s, %s, %s, %s, %s)"""
             cur.execute(sql_query, (str(self.list_id_house[self.comboBox_house.currentIndex()]), str(self.lineEdit_entrance.text()), str(self.lineEdit_host.text()), str(self.lineEdit_port.text()), str(self.lineEdit_login.text()), str(self.lineEdit_pasw.text())))        
 
             # sql_query = "INSERT INTO public.entrance(id_house) VALUES (" + str(self.list_id_house[self.comboBox_house.currentIndex()]) + ")"             
             # print(sql_query)
-            # cur.execute(sql_query)                   
+            # cur.execute(sql_query) 
+            
             cur.close()                
 #           self.conn.commit()
             self.close()
