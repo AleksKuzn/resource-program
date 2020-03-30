@@ -4,7 +4,7 @@ import scaut_ui, add_scaut_ui, kpu
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import  QTableWidgetItem
 from PyQt5.QtGui import *
-from PyQt5.QtCore import *
+#from PyQt5.QtCore import *
 
 class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
     def __init__(self, conn):
@@ -170,13 +170,13 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         self.conn = conn 
         self.filtr_city()       
         cur = self.conn.cursor()            
-        if id_scaut=='-1':
+        if self.id_scaut=='-1':
             self.setWindowTitle('Добавить СКАУТ')
             self.pushButton_kpu.hide()
             self.pushButton_save.clicked.connect(self.insert)
             self.comboBox_city.setCurrentText('Обнинск')
             self.comboBox_street.setCurrentText('Поленова')
-        if id_scaut!='-1':      
+        if self.id_scaut!='-1':      
             self.setWindowTitle('информация СКАУТ')
             self.pushButton_kpu.show()
             self.pushButton_kpu.clicked.connect(self.open_kpu)

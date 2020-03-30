@@ -3,6 +3,8 @@ import psycopg2
 import KPU_ui, add_KPU_ui, replace_KPU_ui, pu   
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import  QTableWidgetItem
+from PyQt5.QtGui import *
+#from PyQt5.QtCore import *
         
 class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
     def __init__(self, conn, id_entr):
@@ -14,7 +16,6 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         self.pushButton_add.clicked.connect(self.add_window)
         self.tableWidget_kpu.doubleClicked.connect(self.cell_was_clicked)        
         self.scaut_query()
-        print('1')
         self.filtr_city()
         self.pushButton_filtr.clicked.connect(self.scaut_query)
 #        self.tableWidget_kpu.horizontalHeader().hideSection(0)       
@@ -132,11 +133,11 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         for index,row in enumerate(data):
             self.tableWidget_kpu.insertRow(0)
             for k in range(len(row)):
-                item = QTableWidgetItem(str(data[index][k]))
-                self.tableWidget_kpu.setItem(0,k,item)        
+                if str(data[index][k])!='': #нужно исправить, это не работает
+                    item = QTableWidgetItem(str(data[index][k]))
+                    self.tableWidget_kpu.setItem(0,k,item)        
         cur.close()
         self.tableWidget_kpu.setMouseTracking(True)
-        print('1')
         self.current_hover = 0
         self.tableWidget_kpu.cellEntered.connect(self.line_selection)
     
@@ -148,23 +149,40 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         self.current_hover = row
     
     def add_window(self):
-        self.add_kpu = add_Kpu()
+        self.add_kpu = add_Kpu('-1', self.conn)
 
     def cell_was_clicked(self, coords):
         id_kpu=self.tableWidget_kpu.item(coords.row(), 0).text()
         self.add_kpu = add_Kpu(id_kpu, self.conn)
         
 class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
-    def __init__(self):
+    def __init__(self, id_kpu, conn):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle('Добавить КПУ')
+        self.id_kpu = id_kpu 
+        self.label_error.hide()
+        self.conn = conn 
+        self.filtr_city()       
+        cur = self.conn.cursor()
+        if self.id_kpu=='-1':
+            self.setWindowTitle('Добавить КПУ')
+            self.pushButton_pu.hide()
+            self.pushButton_save.clicked.connect(self.insert)
+            self.comboBox_city.setCurrentText('Обнинск')
+            self.comboBox_street.setCurrentText('Поленова')
+        if self.id_kpu!='-1':      
+            self.setWindowTitle('информация КПУ')
+            self.pushButton_pu.show()            
+            self.pushButton_pu.clicked.connect(self.open_pu)
+            self.pushButton_replace.clicked.connect(self.replace)
+            self.pushButton_save.clicked.connect(self.update)
+        print('1')
         self.show()
-        self.pushButton_pu.clicked.connect(self.open_pu)
-        self.pushButton_replace.clicked.connect(self.replace)
-        self.pushButton_save.clicked.connect(self.save)
-
-    def save(self):
+    
+    def update(self):
+        self.close()
+    
+    def insert(self):
         self.close()
 
     def open_pu(self):
@@ -174,6 +192,88 @@ class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
     def replace(self):
         self.replace_kpu = replace_Kpu()
         #self.close()
+    
+    def filtr_city(self):
+        self.comboBox_city.clear()        
+        self.comboBox_city.id = []
+        self.comboBox_city.addItem('')        
+        cur = self.conn.cursor()
+        city_query = """SELECT
+                            city.city_name,	
+                            city.id_city                             
+                        FROM
+                            public.city
+                        order by city.city_name;"""                                                      
+        cur.execute(city_query)  
+        data = cur.fetchall()
+        self.list_id_city = [0]
+        for index,row in enumerate(data):           
+            self.list_id_city.append(data[index][1])
+            self.comboBox_city.addItem(str(data[index][0]))
+        cur.close()
+        self.filtr_street()
+        self.comboBox_city.currentIndexChanged.connect(self.filtr_street)      
+        
+    def filtr_street(self):     
+        self.comboBox_street.clear()        
+        self.comboBox_street.id = []        
+        self.comboBox_street.addItem('')      
+        cur = self.conn.cursor() 
+        street_query = """SELECT
+                            street.street_name,	
+                            street.id_street                             
+                        FROM
+                            public.street"""                     
+        street_query = street_query + " WHERE street.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()]) + " order by street.street_name"                      
+        cur.execute(street_query)        
+        data = cur.fetchall()
+        self.list_id_street = [0]
+        for index,row in enumerate(data):   
+            self.list_id_street.append(data[index][1])
+            self.comboBox_street.addItem(str(data[index][0]))    
+        cur.close()      
+        self.filtr_house()
+        self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
+        
+    def filtr_house(self):    
+        self.comboBox_house.clear()        
+        self.comboBox_house.id = []        
+        self.comboBox_house.addItem('')
+        cur = self.conn.cursor()        
+        house_query = """SELECT
+                            house.house_number,	
+                            house.id_house                             
+                        FROM
+                            public.house"""                                    
+        house_query = house_query + " WHERE house.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) + " order by cast(substring(house.house_number from \'^[0-9]+\') as integer)"       
+        cur.execute(house_query)         
+        data = cur.fetchall()
+        self.list_id_house = [0]
+        for index,row in enumerate(data):  
+            self.list_id_house.append(data[index][1])  
+            self.comboBox_house.addItem(str(data[index][0]))  
+        cur.close()
+        self.filtr_entrance()
+        self.comboBox_house.currentIndexChanged.connect(self.filtr_entrance)
+    
+    def filtr_entrance(self):
+        self.comboBox_entrance.clear() 
+        self.comboBox_entrance.id = []        
+        self.comboBox_entrance.addItem('')
+        cur = self.conn.cursor()
+        entrance_query = """SELECT
+                            entrance.num_entr,	
+                            entrance.id_entr                             
+                        FROM
+                            public.entrance"""                                
+        entrance_query = entrance_query + " WHERE entrance.id_house = " + str(self.list_id_house[self.comboBox_house.currentIndex()]) + " order by cast(entrance.num_entr as integer)"
+        cur.execute(entrance_query) 
+        data = cur.fetchall()
+        self.list_id_entrace = [0]
+        for index,row in enumerate(data):
+            self.list_id_entrace.append(data[index][1])        
+            self.comboBox_entrance.addItem(str(data[index][0]))        
+        cur.close()
         
 class replace_Kpu(QtWidgets.QWidget, replace_KPU_ui.Ui_Form):
     def __init__(self):
