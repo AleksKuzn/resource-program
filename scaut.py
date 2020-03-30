@@ -167,8 +167,7 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         self.setupUi(self)
         self.id_scaut = id_scaut       
         self.conn = conn 
-        self.filtr_city()
-        
+        self.filtr_city()       
         cur = self.conn.cursor()            
         if id_scaut=='-1':
             self.setWindowTitle('Добавить СКАУТ')
@@ -204,6 +203,8 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             self.comboBox_city.model().item(0).setEnabled(False)
             self.comboBox_street.setCurrentText(data[0][1])
             self.comboBox_street.model().item(0).setEnabled(False)
+            self.comboBox_house.setCurrentText(data[0][2])
+            self.comboBox_house.model().item(0).setEnabled(False)
 #            self.filtr_city(data[0][0])
 #            self.filtr_street(data[0][1])
 #            self.filtr_house(data[0][2])
@@ -299,7 +300,6 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             self.list_id_city.append(data[index][1])
             self.comboBox_city.addItem(str(data[index][0]))
         cur.close()
-#        self.comboBox_city.setCurrentText(city)
         self.filtr_street()
         self.comboBox_city.currentIndexChanged.connect(self.filtr_street)      
         
@@ -321,14 +321,10 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             self.list_id_street.append(data[index][1])
             self.comboBox_street.addItem(str(data[index][0]))    
         cur.close()      
- #       print(self.comboBox_street.currentIndex())
-#        self.filtr_house('9')
-#        self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
+        self.filtr_house()
+        self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
         
-    def filtr_house(self,name_house):    
-        n_house=name_house
-        print(self.comboBox_city.currentIndex())
-        print(self.comboBox_street.currentIndex())
+    def filtr_house(self):    
         self.comboBox_house.clear()        
         self.comboBox_house.id = []        
         self.comboBox_house.addItem('')
@@ -337,16 +333,13 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
                             house.house_number,	
                             house.id_house                             
                         FROM
-                            public.house"""
-                                    
+                            public.house"""                                    
         house_query = house_query + " WHERE house.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) + " order by cast(substring(house.house_number from \'^[0-9]+\') as integer)"       
-        print('0')
         cur.execute(house_query)         
         data = cur.fetchall()
-        self.list_id_house = []
+        self.list_id_house = [0]
         for index,row in enumerate(data):  
             self.list_id_house.append(data[index][1])  
             self.comboBox_house.addItem(str(data[index][0]))  
         cur.close()
-        self.comboBox_street.setCurrentText(house)
         
