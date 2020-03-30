@@ -221,15 +221,10 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
     def update(self):
         #Как проверить, что пользователь не удалил запись из ячейки?
         cur = self.conn.cursor() 
-        
-        # sql_query = "UPDATE public.entrance SET login_user='" + str(self.lineEdit_login.text()) + "' WHERE id_entr=" + str(self.id_entr) 
-        # print(sql_query)               
-        # cur.execute(sql_query) 
         sql_query = """UPDATE public.entrance
                        SET id_house=%s, num_entr=%s, ip_rassbery=%s, port_rassbery=%s, login_user=%s, pwd_user=%s                                                                                             
                        WHERE id_entr=%s""" 
-        cur.execute(sql_query, (self.list_id_house[self.comboBox_house.currentIndex()], self.lineEdit_entrance.text(), self.lineEdit_host.text(), self.lineEdit_port.text(), self.lineEdit_login.text(), self.lineEdit_pasw.text(), self.id_entr))        
-        
+        cur.execute(sql_query, (self.list_id_house[self.comboBox_house.currentIndex()], self.lineEdit_entrance.text(), self.lineEdit_host.text(), self.lineEdit_port.text(), self.lineEdit_login.text(), self.lineEdit_pasw.text(), self.id_entr))               
 #        self.conn.commit()
         cur.close()                 
         self.close()
