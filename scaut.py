@@ -168,6 +168,7 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         self.id_scaut = id_scaut       
         self.conn = conn 
         self.filtr_city()
+        
         cur = self.conn.cursor()            
         if id_scaut=='-1':
             self.setWindowTitle('Добавить СКАУТ')
@@ -201,6 +202,8 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             data = cur.fetchall()
             self.comboBox_city.setCurrentText(data[0][0])
             self.comboBox_city.model().item(0).setEnabled(False)
+            self.comboBox_street.setCurrentText(data[0][1])
+            self.comboBox_street.model().item(0).setEnabled(False)
 #            self.filtr_city(data[0][0])
 #            self.filtr_street(data[0][1])
 #            self.filtr_house(data[0][2])
@@ -297,15 +300,13 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             self.comboBox_city.addItem(str(data[index][0]))
         cur.close()
 #        self.comboBox_city.setCurrentText(city)
-#        self.filtr_street()
-#        self.comboBox_city.currentIndexChanged.connect(self.filtr_street)      
+        self.filtr_street()
+        self.comboBox_city.currentIndexChanged.connect(self.filtr_street)      
         
-    def filtr_street(self,street):     
+    def filtr_street(self):     
         self.comboBox_street.clear()        
         self.comboBox_street.id = []        
-        self.comboBox_street.addItem('')
-        print(self.comboBox_city.currentIndex())
-        
+        self.comboBox_street.addItem('')      
         cur = self.conn.cursor() 
         street_query = """SELECT
                             street.street_name,	
@@ -315,15 +316,14 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         street_query = street_query + " WHERE street.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()]) + " order by street.street_name"                      
         cur.execute(street_query)        
         data = cur.fetchall()
-        self.list_id_street = []
+        self.list_id_street = [0]
         for index,row in enumerate(data):   
             self.list_id_street.append(data[index][1])
             self.comboBox_street.addItem(str(data[index][0]))    
         cur.close()      
-        self.comboBox_street.setCurrentText(street)
-        print(self.comboBox_street.currentIndex())
+ #       print(self.comboBox_street.currentIndex())
 #        self.filtr_house('9')
-        self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
+#        self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
         
     def filtr_house(self,name_house):    
         n_house=name_house
