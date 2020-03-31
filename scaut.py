@@ -4,6 +4,7 @@ import scaut_ui, add_scaut_ui, kpu
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import  QTableWidgetItem
 from PyQt5.QtGui import *
+from PyQt5.Qt import *
 #from PyQt5.QtCore import *
 
 class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
@@ -207,8 +208,8 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             self.comboBox_street.setCurrentText(data[0][1])
             self.comboBox_street.model().item(0).setEnabled(False)
             self.comboBox_house.setCurrentText(data[0][2])
-            self.comboBox_house.model().item(0).setEnabled(False)          
-            self.lineEdit_entrance.setText(str(data[0][3]))
+            self.comboBox_house.model().item(0).setEnabled(False) 
+            self.spinBox_entr.setValue(data[0][3])
             self.lineEdit_login.setText(data[0][4])
             self.lineEdit_pasw.setText(data[0][5])
             self.lineEdit_host.setText(data[0][6])
@@ -220,17 +221,23 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
 
     def update(self):
         #Как проверить, что пользователь не удалил запись из ячейки?
-        cur = self.conn.cursor() 
-        sql_query = """UPDATE public.entrance
-                       SET id_house=%s, num_entr=%s, ip_rassbery=%s, port_rassbery=%s, login_user=%s, pwd_user=%s                                                                                             
-                       WHERE id_entr=%s""" 
-        cur.execute(sql_query, (self.list_id_house[self.comboBox_house.currentIndex()], self.lineEdit_entrance.text(), self.lineEdit_host.text(), self.lineEdit_port.text(), self.lineEdit_login.text(), self.lineEdit_pasw.text(), self.id_entr))               
-#        self.conn.commit()
-        cur.close()                 
-        self.close()
+        try:
+            int(self.lineEdit_port.text())
+           # QMessageBox.information(self, 'Информация', 'Введено валидное число: "{}"'.format(value))
+            cur = self.conn.cursor() 
+            sql_query = """UPDATE public.entrance
+                           SET id_house=%s, num_entr=%s, ip_rassbery=%s, port_rassbery=%s, login_user=%s, pwd_user=%s                                                                                             
+                           WHERE id_entr=%s""" 
+            cur.execute(sql_query, (self.list_id_house[self.comboBox_house.currentIndex()], self.spinBox_entr.text(), self.lineEdit_host.text(), int(self.lineEdit_port.text()), self.lineEdit_login.text(), self.lineEdit_pasw.text(), self.id_entr))               
+    #        self.conn.commit()
+            cur.close()                 
+            self.close()
+
+        except ValueError:
+            QMessageBox.warning(self, 'Внимание', 'Значение порта введено неверно')       
         
     def insert(self):                  
-        if self.comboBox_house.currentText()!='' and self.lineEdit_entrance.text()!='':           
+        if self.comboBox_house.currentText()!='':           
             # print(self.list_id_house[self.comboBox_house.currentIndex()])
             # print(self.lineEdit_entrance.text())
             # print(self.lineEdit_host.text())
@@ -241,7 +248,7 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             sql_query = """INSERT INTO public.entrance(id_house, num_entr, ip_rassbery, 
                                                 port_rassbery, login_user, pwd_user)                                                                                             
                         VALUES (%s, %s, %s, %s, %s, %s)"""
-            cur.execute(sql_query, (str(self.list_id_house[self.comboBox_house.currentIndex()]), str(self.lineEdit_entrance.text()), str(self.lineEdit_host.text()), str(self.lineEdit_port.text()), str(self.lineEdit_login.text()), str(self.lineEdit_pasw.text())))        
+            cur.execute(sql_query, (str(self.list_id_house[self.comboBox_house.currentIndex()]), str(self.spinBox_entr.text()), str(self.lineEdit_host.text()), str(self.lineEdit_port.text()), str(self.lineEdit_login.text()), str(self.lineEdit_pasw.text())))        
 
             # sql_query = "INSERT INTO public.entrance(id_house) VALUES (" + str(self.list_id_house[self.comboBox_house.currentIndex()]) + ")"             
             # print(sql_query)
