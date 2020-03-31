@@ -222,22 +222,39 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
     def update(self):
         #Как проверить, что пользователь не удалил запись из ячейки?
         try:
-            int(self.lineEdit_port.text())
            # QMessageBox.information(self, 'Информация', 'Введено валидное число: "{}"'.format(value))
-            cur = self.conn.cursor() 
+            text='Значение порта введено некорректно'
+            if self.lineEdit_port.text()=='': text='Введите номер порта'
+            if self.comboBox_house.currentText()=='': 
+                text='Введите номер дома'
+                raise ValueError
+            val_id_house=int(self.list_id_house[self.comboBox_house.currentIndex()])
+            val_host=str(self.lineEdit_host.text())        
+            cur = self.conn.cursor()
             sql_query = """UPDATE public.entrance
                            SET id_house=%s, num_entr=%s, ip_rassbery=%s, port_rassbery=%s, login_user=%s, pwd_user=%s                                                                                             
-                           WHERE id_entr=%s""" 
-            cur.execute(sql_query, (self.list_id_house[self.comboBox_house.currentIndex()], self.spinBox_entr.text(), self.lineEdit_host.text(), int(self.lineEdit_port.text()), self.lineEdit_login.text(), self.lineEdit_pasw.text(), self.id_entr))               
-    #        self.conn.commit()
-            cur.close()                 
+                           WHERE id_entr=%s"""
+            cur.execute(sql_query, (val_id_house, int(self.spinBox_entr.value()), (val_host if val_host!='' else null), int(self.lineEdit_port.text()), str(self.lineEdit_login.text()), self.lineEdit_pasw.text(), self.id_entr))               
+ #           self.conn.commit()
+            cur.close()
             self.close()
-
-        except ValueError:
-            QMessageBox.warning(self, 'Внимание', 'Значение порта введено неверно')       
+                
+        except ValueError:                          
+            pal = self.label_error.palette()
+            pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
+            self.label_error.setPalette(pal)
+            self.label_error.setText(text)     
+            self.label_error.show() 
+ #           QMessageBox.warning(self, 'Внимание', 'Введено некорректное значение')
         
-    def insert(self):                  
-        if self.comboBox_house.currentText()!='':           
+    def insert(self):
+        # не работает добавление
+        try:
+            text='Значение порта введено некорректно'   
+            if self.lineEdit_port.text()=='': text='Введите номер порта'
+            if self.comboBox_house.currentText()=='':  
+                text='Введите номер дома'
+                raise ValueError
             # print(self.list_id_house[self.comboBox_house.currentIndex()])
             # print(self.lineEdit_entrance.text())
             # print(self.lineEdit_host.text())
@@ -248,22 +265,16 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             sql_query = """INSERT INTO public.entrance(id_house, num_entr, ip_rassbery, 
                                                 port_rassbery, login_user, pwd_user)                                                                                             
                         VALUES (%s, %s, %s, %s, %s, %s)"""
-            cur.execute(sql_query, (str(self.list_id_house[self.comboBox_house.currentIndex()]), str(self.spinBox_entr.text()), str(self.lineEdit_host.text()), str(self.lineEdit_port.text()), str(self.lineEdit_login.text()), str(self.lineEdit_pasw.text())))        
-
-            # sql_query = "INSERT INTO public.entrance(id_house) VALUES (" + str(self.list_id_house[self.comboBox_house.currentIndex()]) + ")"             
-            # print(sql_query)
-            # cur.execute(sql_query) 
-            
-            cur.close()                
+            cur.execute(sql_query, (int(self.list_id_house[self.comboBox_house.currentIndex()]), int(self.spinBox_entr.value()), str(self.lineEdit_host.text()), int(self.lineEdit_port.text()), str(self.lineEdit_login.text()), str(self.lineEdit_pasw.text())))                  
 #           self.conn.commit()
+            cur.close()                
             self.close()
-        else:         
-            pal = self.label_error.palette()
-            pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
-            self.label_error.setPalette(pal)
-            self.label_error.setText("Укажите номер дома и подъезда")
-#            self.resize(self.label_error.sizeHint())         
-            self.label_error.show()
+        except ValueError:         
+                pal = self.label_error.palette()
+                pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
+                self.label_error.setPalette(pal)
+                self.label_error.setText(text)        
+                self.label_error.show()
        
     def open_kpu(self):
         self.kpu = kpu.Kpu(self.conn, self.id_entr)
@@ -311,7 +322,7 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         self.filtr_house()
         self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
         
-    def filtr_house(self):    
+    def filtr_house(self):
         self.comboBox_house.clear()        
         self.comboBox_house.id = []        
         self.comboBox_house.addItem('')
@@ -320,9 +331,9 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
                             house.house_number,	
                             house.id_house                             
                         FROM
-                            public.house"""                                    
-        house_query = house_query + " WHERE house.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) + " order by cast(substring(house.house_number from \'^[0-9]+\') as integer)"       
-        cur.execute(house_query)         
+                            public.house"""   
+        house_query = house_query + " WHERE house.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) + " order by cast(substring(house.house_number from \'^[0-9]+\') as integer)"          
+        cur.execute(house_query)  
         data = cur.fetchall()
         self.list_id_house = [0]
         for index,row in enumerate(data):  
