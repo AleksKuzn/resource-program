@@ -106,7 +106,6 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
         
     def scaut_query(self):
         self.tableWidget_scaut.setRowCount(0)
-        cur = self.conn.cursor()
         self.sql_query = """SELECT
                                 city.city_name,	
                                 street.street_name,
@@ -133,24 +132,26 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
             else:   
                 self.sql_query = self.sql_query + " WHERE city.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()]) 
         self.sql_query = self.sql_query + " ORDER BY city.city_name, street.street_name, cast(substring(house.house_number from \'^[0-9]+\') as integer), cast(entrance.num_entr as integer) DESC"      
+        cur = self.conn.cursor()
         cur.execute(self.sql_query)        
         data = cur.fetchall()
         for index,row in enumerate(data):
             self.tableWidget_scaut.insertRow(0)
             for k in range(len(row)):
-                item = QTableWidgetItem(str(data[index][k]))
+#                item = QTableWidgetItem(str(data[index][k]))
+                item = QTableWidgetItem('' if data[index][k]==None else str(data[index][k]))
                 self.tableWidget_scaut.setItem(0,k,item)        
         cur.close()
         self.tableWidget_scaut.setMouseTracking(True)
-        self.current_hover2 = 0
+        self.current_hover = 0
         self.tableWidget_scaut.cellEntered.connect(self.line_selection)
         
     def line_selection(self, row, column):
-        if self.current_hover2 != row:
+        if self.current_hover != row:
             for j in range(self.tableWidget_scaut.columnCount()):
-                self.tableWidget_scaut.item(self.current_hover2, j).setBackground(QBrush(QColor('white')))
+                self.tableWidget_scaut.item(self.current_hover, j).setBackground(QBrush(QColor('white')))
                 self.tableWidget_scaut.item(row, j).setBackground(QBrush(QColor('lightGray')))
-        self.current_hover2 = row
+        self.current_hover = row
         
     def add_window(self):
         self.add_scaut = add_Scaut('-1', self.conn)

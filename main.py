@@ -46,7 +46,7 @@ class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
         self.kpu = kpu.Kpu(conn,'-1')
 
     def open_pu(self):
-        self.pu = pu.Pu(conn)
+        self.pu = pu.Pu(conn,'-1')
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)

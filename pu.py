@@ -4,12 +4,18 @@ import PU_ui, add_PU_ui, click_PU_ui, replace_PU_ui
 from PyQt5 import QtCore, QtGui, QtWidgets
         
 class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
-    def __init__(self):
+    def __init__(self, conn, id_kpu):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle('ПУ')
-        self.show()
+        self.conn = conn
         self.pushButton_add.clicked.connect(self.add_window)
+        self.tableWidget_scaut.doubleClicked.connect(self.cell_was_clicked)        
+        self.scaut_query()
+        self.filtr_city()
+        self.pushButton_filtr.clicked.connect(self.scaut_query)
+        self.tableWidget_scaut.horizontalHeader().hideSection(4)
+        self.show() 
 
     def add_window(self):
         self.add_pu = add_Pu()
