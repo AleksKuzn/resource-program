@@ -213,7 +213,9 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             self.lineEdit_login.setText(data[0][4])
             self.lineEdit_pasw.setText(data[0][5])
             self.lineEdit_host.setText(data[0][6])
-            self.lineEdit_port.setText(str(data[0][7]))
+            val_port=data[0][7]
+            val_port= '' if val_port==None else str(val_port)
+            self.lineEdit_port.setText(val_port)
             self.id_entr = data[0][8]
             self.label.setText('id_entr = '+str(data[0][8]))
         cur.close() 
@@ -224,18 +226,27 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         try:
            # QMessageBox.information(self, 'Информация', 'Введено валидное число: "{}"'.format(value))
             text='Значение порта введено некорректно'
-            if self.lineEdit_port.text()=='': text='Введите номер порта'
+#            if self.lineEdit_port.text()=='': text='Введите номер порта'
             if self.comboBox_house.currentText()=='': 
                 text='Введите номер дома'
                 raise ValueError
             val_id_house=int(self.list_id_house[self.comboBox_house.currentIndex()])
-            val_host=str(self.lineEdit_host.text())        
+            val_entr=int(self.spinBox_entr.value())
+            val_host = str(self.lineEdit_host.text())
+            if val_host == '': val_host = None
+            val_port = str(self.lineEdit_port.text())
+            if val_port == '': val_port = None
+            val_login = str(self.lineEdit_login.text())
+            if val_login == '': val_login = None
+            val_pasw = str(self.lineEdit_pasw.text())
+            if val_pasw == '': val_pasw = None
+            
             cur = self.conn.cursor()
             sql_query = """UPDATE public.entrance
                            SET id_house=%s, num_entr=%s, ip_rassbery=%s, port_rassbery=%s, login_user=%s, pwd_user=%s                                                                                             
                            WHERE id_entr=%s"""
-            cur.execute(sql_query, (val_id_house, int(self.spinBox_entr.value()), (val_host if val_host!='' else null), int(self.lineEdit_port.text()), str(self.lineEdit_login.text()), self.lineEdit_pasw.text(), self.id_entr))               
- #           self.conn.commit()
+            cur.execute(sql_query, (val_id_house, val_entr, val_host, val_port, val_login, val_pasw, self.id_entr))               
+#            self.conn.commit()
             cur.close()
             self.close()
                 
