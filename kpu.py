@@ -18,7 +18,7 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         self.scaut_query()
         self.filtr_city()
         self.pushButton_filtr.clicked.connect(self.scaut_query)
-#        self.tableWidget_kpu.horizontalHeader().hideSection(0)       
+        self.tableWidget_kpu.horizontalHeader().hideSection(0)       
         self.show()
     
     def filtr_city(self):

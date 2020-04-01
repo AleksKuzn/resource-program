@@ -13,9 +13,6 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
         self.setupUi(self)
         self.setWindowTitle('СКАУТ')      
         self.conn = conn
-        
-#        self.pushButton_add.hide()
-        
         self.pushButton_add.clicked.connect(self.add_window)
         self.tableWidget_scaut.doubleClicked.connect(self.cell_was_clicked)        
         self.scaut_query()
@@ -230,12 +227,13 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             if self.comboBox_house.currentText()=='': 
                 text='Введите номер дома'
                 raise ValueError
-            val_id_house=int(self.list_id_house[self.comboBox_house.currentIndex()])
-            val_entr=int(self.spinBox_entr.value())
+            val_id_house = int(self.list_id_house[self.comboBox_house.currentIndex()])
+            val_entr = int(self.spinBox_entr.value())
             val_host = str(self.lineEdit_host.text())
             if val_host == '': val_host = None
             val_port = str(self.lineEdit_port.text())
-            if val_port == '': val_port = None
+            val_port = None if val_port == '' else int(val_port)
+#            if val_port == '': val_port = None
             val_login = str(self.lineEdit_login.text())
             if val_login == '': val_login = None
             val_pasw = str(self.lineEdit_pasw.text())
@@ -259,24 +257,35 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
  #           QMessageBox.warning(self, 'Внимание', 'Введено некорректное значение')
         
     def insert(self):
-        # не работает добавление
+        # не работает добавление, нету доступа
         try:
             text='Значение порта введено некорректно'   
-            if self.lineEdit_port.text()=='': text='Введите номер порта'
             if self.comboBox_house.currentText()=='':  
                 text='Введите номер дома'
                 raise ValueError
-            # print(self.list_id_house[self.comboBox_house.currentIndex()])
-            # print(self.lineEdit_entrance.text())
-            # print(self.lineEdit_host.text())
-            # print(self.lineEdit_port.text())
-            # print(self.lineEdit_login.text())
-            # print(self.lineEdit_pasw.text())
+            val_id_house = int(self.list_id_house[self.comboBox_house.currentIndex()])
+            val_entr = int(self.spinBox_entr.value())
+            val_host = str(self.lineEdit_host.text())
+            if val_host == '': val_host = None
+            val_port = str(self.lineEdit_port.text()) # или int?
+            val_port = None if val_port == '' else int(val_port)
+#            if val_port == '': val_port = None
+            val_login = str(self.lineEdit_login.text())
+            if val_login == '': val_login = None
+            val_pasw = str(self.lineEdit_pasw.text())
+            if val_pasw == '': val_pasw = None
+            # print(val_id_house)
+            # print(val_entr)
+            # print(val_host)
+            # print(val_port)
+            # print(val_login)
+            # print(val_pasw)
             cur = self.conn.cursor()
             sql_query = """INSERT INTO public.entrance(id_house, num_entr, ip_rassbery, 
                                                 port_rassbery, login_user, pwd_user)                                                                                             
                         VALUES (%s, %s, %s, %s, %s, %s)"""
-            cur.execute(sql_query, (int(self.list_id_house[self.comboBox_house.currentIndex()]), int(self.spinBox_entr.value()), str(self.lineEdit_host.text()), int(self.lineEdit_port.text()), str(self.lineEdit_login.text()), str(self.lineEdit_pasw.text())))                  
+            # print(sql_query)
+            cur.execute(sql_query, (val_id_house, val_entr, val_host, val_port, val_login, val_pasw))                
 #           self.conn.commit()
             cur.close()                
             self.close()
