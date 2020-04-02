@@ -15,9 +15,9 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
         self.conn = conn
         self.pushButton_add.clicked.connect(self.add_window)
         self.tableWidget_scaut.doubleClicked.connect(self.cell_was_clicked)        
-        self.scaut_query()
+        self.select()
         self.filtr_city()
-        self.pushButton_filtr.clicked.connect(self.scaut_query)
+        self.pushButton_filtr.clicked.connect(self.select)
         self.tableWidget_scaut.horizontalHeader().hideSection(4)
         self.show()   
         
@@ -104,7 +104,7 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
             self.comboBox_entrance.addItem(str(data[index][0]))        
         cur.close()
         
-    def scaut_query(self):
+    def select(self):
         self.tableWidget_scaut.setRowCount(0)
         self.sql_query = """SELECT
                                 city.city_name,	
@@ -299,7 +299,7 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
        
     def open_kpu(self):
         self.kpu = kpu.Kpu(self.conn, self.id_entr)
-        #self.close()
+        self.close()
     
     def filtr_city(self):
         self.comboBox_city.clear()        

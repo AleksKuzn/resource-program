@@ -2,7 +2,8 @@ import sys
 import psycopg2
 import KPU_ui, add_KPU_ui, replace_KPU_ui, pu   
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import  QTableWidgetItem
+from PyQt5.QtWidgets import  QTableWidgetItem, QCheckBox#, QWidget, QApplication
+#from PyQt5.QtCore import Qt
 from PyQt5.QtGui import *
 from PyQt5.Qt import *
 #from PyQt5.QtCore import *
@@ -16,9 +17,9 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         self.conn = conn 
         self.pushButton_add.clicked.connect(self.add_window)
         self.tableWidget_kpu.doubleClicked.connect(self.cell_was_clicked)        
-        self.scaut_query()
+        self.select()
         self.filtr_city()
-        self.pushButton_filtr.clicked.connect(self.scaut_query)
+        self.pushButton_filtr.clicked.connect(self.select)
         self.tableWidget_kpu.horizontalHeader().hideSection(0)       
         self.show()
     
@@ -115,7 +116,7 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
             self.comboBox_entrance.setCurrentText(self.tableWidget_kpu.item(0,4).text())
             self.id_entr='-1'
     
-    def scaut_query(self):
+    def select(self):
         self.tableWidget_kpu.setRowCount(0)       
         self.sql_query = """SELECT  
                               kpu.id_kpu,
@@ -157,18 +158,30 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
             for k in range(len(row)):
                 if str(data[index][k])!='':
 #                    item = QTableWidgetItem(str(data[index][k]))
-                    item = QTableWidgetItem('' if data[index][k]==None else str(data[index][k]))
-                    self.tableWidget_kpu.setItem(0,k,item)
-                    
+                    item = QTableWidgetItem('' if data[index][k]==None else str(data[index][k]))                 
+                    if k!=10: self.tableWidget_kpu.setItem(0,k,item)
+                    if k== 10: 
+                        cb = QCheckBox(self.tableWidget_kpu)
+#                        cb.setCheckable(False)
+                        cb.setChecked(data[index][k])
+                        cb.setEnabled(False)
+                        self.tableWidget_kpu.setCellWidget(0,k,cb)                    
         cur.close()
+        if self.comboBox_city.currentText()=='': self.tableWidget_kpu.horizontalHeader().showSection(1)
+        if self.comboBox_city.currentText()!='': self.tableWidget_kpu.horizontalHeader().hideSection(1)
+        #self.tableWidget_kpu.item(1, 1).setBackground(QBrush(QColor('lightGray')))
+        self.tableWidget_kpu.item(1, 1).setBackground(QtGui.QColor(100,150,100))
+        #self.tableWidget_kpu.horizontalHeader().show(1) if self.comboBox_city.currentText()=='' else self.tableWidget_kpu.horizontalHeader().hideSection(1)
+            
         self.tableWidget_kpu.resizeColumnsToContents()
+#        self.tableWidget_kpu.resizeRowsToContents()
         self.tableWidget_kpu.setMouseTracking(True)
         self.current_hover = 0
         self.tableWidget_kpu.cellEntered.connect(self.line_selection)
     
-    def line_selection(self, row, column):
+    def line_selection(self, row, column): #нужно менять! из-за чекбокса крашится
         if self.current_hover != row:
-            for j in range(self.tableWidget_kpu.columnCount()):
+            for j in range(self.tableWidget_kpu.columnCount()-1):
                 self.tableWidget_kpu.item(self.current_hover, j).setBackground(QBrush(QColor('white')))
                 self.tableWidget_kpu.item(row, j).setBackground(QBrush(QColor('lightGray')))
         self.current_hover = row
@@ -233,11 +246,11 @@ class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
 
     def open_pu(self):
         self.pu = pu.Pu(self.conn, self.id_kpu)
-        #self.close()
+        self.close()
 
     def replace(self):
-        self.replace_kpu = replace_Kpu()
-        #self.close()
+        self.replace_kpu = replace_Kpu(self.conn, self.id_kpu)
+        self.close()
     
     def filtr_city(self):
         self.comboBox_city.clear()        
@@ -322,7 +335,7 @@ class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
         cur.close()
         
 class replace_Kpu(QtWidgets.QWidget, replace_KPU_ui.Ui_Form):
-    def __init__(self):
+    def __init__(self, id_kpu, conn):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle('Замена КПУ')
