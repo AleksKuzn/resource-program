@@ -15,8 +15,8 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
         self.conn = conn
         self.pushButton_add.clicked.connect(self.add_window)
         self.tableWidget_scaut.doubleClicked.connect(self.cell_was_clicked)        
-        self.select()
         self.filtr_city()
+        self.select()
         self.pushButton_filtr.clicked.connect(self.select)
         self.tableWidget_scaut.horizontalHeader().hideSection(4)
         self.show()   
@@ -176,7 +176,7 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             self.comboBox_city.setCurrentText('Обнинск')
             self.comboBox_street.setCurrentText('Поленова')
         if self.id_scaut!='-1':      
-            self.setWindowTitle('информация СКАУТ')
+            self.setWindowTitle('Изменить СКАУТ')
             self.pushButton_kpu.show()
             self.pushButton_kpu.clicked.connect(self.open_kpu)
             self.pushButton_save.clicked.connect(self.update)

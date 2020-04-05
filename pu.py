@@ -16,10 +16,12 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
         self.conn = conn
         self.pushButton_add.clicked.connect(self.add_window)
         self.tableWidget_pu.doubleClicked.connect(self.cell_was_clicked)        
-        self.select()
-        self.filtr_city()
+        #self.filtr_city()
+        self.select()     
         self.pushButton_filtr.clicked.connect(self.select)
         self.tableWidget_pu.horizontalHeader().hideSection(0)
+        self.tableWidget_pu.horizontalHeader().hideSection(16)
+        self.filtr_city()
         self.show() 
     
     def filtr_city(self):
@@ -88,7 +90,7 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
             self.list_id_house.append(data[index][1])  
             self.comboBox_house.addItem(str(data[index][0]))          
         cur.close()
-        if (self.id_kpu!='-1') and (self.tableWidget_pu.rowCount() > 0):
+        if (self.id_kpu!='-1') and (self.tableWidget_pu.rowCount() > 0): #Исправить запрос, или поменять очередность с заполнением таблицы
             self.comboBox_house.setCurrentText(self.tableWidget_pu.item(0,3).text())
         self.filtr_entrance()
         self.comboBox_house.currentIndexChanged.connect(self.filtr_entrance)
@@ -149,18 +151,37 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
                                 on city.id_city = street.id_city"""
         if self.id_kpu!='-1':
             self.sql_query = self.sql_query + " WHERE kpu.id_kpu = " + str(self.id_kpu)
+            self.tableWidget_pu.horizontalHeader().hideSection(1)
+            self.tableWidget_pu.horizontalHeader().hideSection(2)
+            self.tableWidget_pu.horizontalHeader().hideSection(3)
+            self.tableWidget_pu.horizontalHeader().hideSection(4)
         if self.id_kpu=='-1':
             if self.comboBox_city.currentText()!='':
+                self.tableWidget_pu.horizontalHeader().hideSection(1)
                 if self.comboBox_street.currentText()!='':
+                    self.tableWidget_pu.horizontalHeader().hideSection(2)
                     if self.comboBox_house.currentText()!='':
+                        self.tableWidget_pu.horizontalHeader().hideSection(3)
                         if self.comboBox_entrance.currentText()!='':
+                            self.tableWidget_pu.horizontalHeader().hideSection(4)
                             self.sql_query = self.sql_query + " WHERE entrance.id_entr = " + str(self.list_id_entrace[self.comboBox_entrance.currentIndex()])
-                        else:                    
+                        else: 
+                            self.tableWidget_pu.horizontalHeader().showSection(4)
                             self.sql_query = self.sql_query + " WHERE house.id_house = " + str(self.list_id_house[self.comboBox_house.currentIndex()])
                     else:
+                        self.tableWidget_pu.horizontalHeader().showSection(4)
+                        self.tableWidget_pu.horizontalHeader().showSection(3)
                         self.sql_query = self.sql_query + " WHERE street.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) 
-                else:   
+                else:
+                    self.tableWidget_pu.horizontalHeader().showSection(4)
+                    self.tableWidget_pu.horizontalHeader().showSection(3)
+                    self.tableWidget_pu.horizontalHeader().showSection(2)
                     self.sql_query = self.sql_query + " WHERE city.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()])         
+            else:
+                self.tableWidget_pu.horizontalHeader().showSection(4)
+                self.tableWidget_pu.horizontalHeader().showSection(3)
+                self.tableWidget_pu.horizontalHeader().showSection(2)
+                self.tableWidget_pu.horizontalHeader().showSection(1)
         self.sql_query = self.sql_query + " ORDER BY city.city_name, street.street_name, cast(substring(house.house_number from '^[0-9]+') as integer), cast(entrance.num_entr as integer), flat.num_flat, counter.type_counter DESC"     
         cur = self.conn.cursor()
         cur.execute(self.sql_query)  
@@ -168,36 +189,24 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
         for index,row in enumerate(data):
             self.tableWidget_pu.insertRow(0)
             for k in range(len(row)):
-                if str(data[index][k])!='':
-#                    item = QTableWidgetItem(str(data[index][k]))
                     item = QTableWidgetItem('' if data[index][k]==None else str(data[index][k]))                 
-                    if k!=16: self.tableWidget_pu.setItem(0,k,item)
-                    if k== 16: 
-                        cb = QCheckBox(self.tableWidget_pu)
-#                        cb.setCheckable(False)
-                        cb.setChecked(data[index][k])
-#                        cb.setEnabled(False)
-                        self.tableWidget_pu.setCellWidget(0,k,cb)              
-        cur.close()
-        if self.comboBox_city.currentText()=='': self.tableWidget_pu.horizontalHeader().showSection(1)
-        if self.comboBox_city.currentText()!='': self.tableWidget_pu.horizontalHeader().hideSection(1)          
-        if self.comboBox_street.currentText()=='': self.tableWidget_pu.horizontalHeader().showSection(2)
-        if self.comboBox_street.currentText()!='': self.tableWidget_pu.horizontalHeader().hideSection(2)          
-        if self.comboBox_house.currentText()=='': self.tableWidget_pu.horizontalHeader().showSection(3)
-        if self.comboBox_house.currentText()!='': self.tableWidget_pu.horizontalHeader().hideSection(3)          
-        if self.comboBox_entrance.currentText()=='': self.tableWidget_pu.horizontalHeader().showSection(4)
-        if self.comboBox_entrance.currentText()!='': self.tableWidget_pu.horizontalHeader().hideSection(4)          
-        
+                    self.tableWidget_pu.setItem(0,k,item)
+                    if data[index][16]==False:
+                        self.tableWidget_pu.item(0, k).setBackground(QtGui.QColor(245,245,245))
+                        self.tableWidget_pu.item(0, k).setForeground(QtGui.QColor(110,110,110))             
+        cur.close()   
         self.tableWidget_pu.resizeColumnsToContents()
-#        self.tableWidget_pu.resizeRowsToContents()
         self.tableWidget_pu.setMouseTracking(True)
         self.current_hover = 0
         self.tableWidget_pu.cellEntered.connect(self.line_selection)
     
-    def line_selection(self, row, column): #нужно менять! из-за чекбокса крашится
+    def line_selection(self, row, column):
         if self.current_hover != row:
-            for j in range(self.tableWidget_pu.columnCount()-1):
-                self.tableWidget_pu.item(self.current_hover, j).setBackground(QBrush(QColor('white')))
+            for j in range(self.tableWidget_pu.columnCount()):
+                if self.tableWidget_pu.item(self.current_hover,16).text()=='False':        
+                    self.tableWidget_pu.item(self.current_hover, j).setBackground(QtGui.QColor(245,245,245))                   
+                else:
+                    self.tableWidget_pu.item(self.current_hover, j).setBackground(QBrush(QColor('white')))
                 self.tableWidget_pu.item(row, j).setBackground(QBrush(QColor('lightGray')))
         self.current_hover = row
         
@@ -206,8 +215,7 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
         
     def cell_was_clicked(self, coords):
         id_pu=self.tableWidget_pu.item(coords.row(), 0).text()
-        self.add_pu = add_Pu(id_pu, self.conn)
-#        self.click_pu = click_Pu(id_pu, self.conn)
+        self.click_pu=click_Pu(id_pu, self.conn)
 
 class add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
     def __init__(self, id_pu, conn):
@@ -228,17 +236,22 @@ class click_Pu(QtWidgets.QWidget, click_PU_ui.Ui_Form):
     def __init__(self, id_pu, conn):
         super().__init__()
         self.setupUi(self)
+        self.conn = conn
+        self.id_pu = id_pu
         self.setWindowTitle('ПУ')
-        self.show()
+        
         self.pushButton_replace.clicked.connect(self.replace)
         self.pushButton_save.clicked.connect(self.save)
         self.pushButton_addStart.clicked.connect(self.add_start)
+        self.show()
 
     def save(self):
         self.close()
 
     def replace(self):
-        self.replace_pu = replace_Pu()
+        print('1')
+        self.replace_pu = replace_Pu(self.id_pu, self.conn)
+        print('3')
         self.close()
         
     def add_start(self):
@@ -247,11 +260,16 @@ class click_Pu(QtWidgets.QWidget, click_PU_ui.Ui_Form):
 class replace_Pu(QtWidgets.QWidget, replace_PU_ui.Ui_Form):
     def __init__(self, id_pu, conn):
         super().__init__()
-        self.setupUi(self)
+        self.setupUi(self)       
+        self.conn = conn
+        self.id_pu = id_pu       
         self.setWindowTitle('Замена ПУ')
-        self.show()
+        
+        
         self.pushButton_replace.clicked.connect(self.replace)
         self.pushButton_cansel.clicked.connect(self.cansel)
+        print('2')
+        self.show()
 
     def cansel(self):
         self.close()

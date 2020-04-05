@@ -2,11 +2,9 @@ import sys
 import psycopg2
 import KPU_ui, add_KPU_ui, replace_KPU_ui, pu   
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import  QTableWidgetItem, QCheckBox#, QWidget, QApplication
-#from PyQt5.QtCore import Qt
-from PyQt5.QtGui import *
+#from PyQt5.QtWidgets import  QTableWidgetItem, QCheckBox
+#from PyQt5.QtGui import *
 from PyQt5.Qt import *
-#from PyQt5.QtCore import *
         
 class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
     def __init__(self, conn, id_entr):
@@ -18,9 +16,10 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         self.pushButton_add.clicked.connect(self.add_window)
         self.tableWidget_kpu.doubleClicked.connect(self.cell_was_clicked)        
         self.select()
-        self.filtr_city()
         self.pushButton_filtr.clicked.connect(self.select)
-        self.tableWidget_kpu.horizontalHeader().hideSection(0)       
+        self.tableWidget_kpu.horizontalHeader().hideSection(0)
+        self.tableWidget_kpu.horizontalHeader().hideSection(10)
+        self.filtr_city()
         self.show()
     
     def filtr_city(self):
@@ -137,8 +136,10 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
                                 on city.id_city = street.id_city"""
         if self.id_entr!='-1':
             self.sql_query = self.sql_query + " WHERE kpu.id_entr = " + str(self.id_entr)
+            self.tableWidget_kpu.horizontalHeader().hideSection(1)
         if self.id_entr=='-1':
             if self.comboBox_city.currentText()!='':
+                self.tableWidget_kpu.horizontalHeader().hideSection(1)
                 if self.comboBox_street.currentText()!='':
                     if self.comboBox_house.currentText()!='':
                         if self.comboBox_entrance.currentText()!='':
@@ -149,6 +150,7 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
                         self.sql_query = self.sql_query + " WHERE street.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) 
                 else:   
                     self.sql_query = self.sql_query + " WHERE city.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()])         
+            else: self.tableWidget_kpu.horizontalHeader().showSection(1)
         self.sql_query = self.sql_query + " ORDER BY city.city_name, street.street_name, cast(substring(house.house_number from \'^[0-9]+\') as integer), cast(entrance.num_entr as integer), kpu.type_kpu, kpu.adress DESC"     
         cur = self.conn.cursor()
         cur.execute(self.sql_query)   
@@ -156,33 +158,27 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         for index,row in enumerate(data):
             self.tableWidget_kpu.insertRow(0)
             for k in range(len(row)):
-                if str(data[index][k])!='':
+#                if str(data[index][k])!='':
 #                    item = QTableWidgetItem(str(data[index][k]))
                     item = QTableWidgetItem('' if data[index][k]==None else str(data[index][k]))                 
-                    if k!=10: self.tableWidget_kpu.setItem(0,k,item)
-                    if k== 10: 
-                        cb = QCheckBox(self.tableWidget_kpu)
-#                        cb.setCheckable(False)
-                        cb.setChecked(data[index][k])
-                        cb.setEnabled(False)
-                        self.tableWidget_kpu.setCellWidget(0,k,cb)                    
-        cur.close()
-        if self.comboBox_city.currentText()=='': self.tableWidget_kpu.horizontalHeader().showSection(1)
-        if self.comboBox_city.currentText()!='': self.tableWidget_kpu.horizontalHeader().hideSection(1)
-        #self.tableWidget_kpu.item(1, 1).setBackground(QBrush(QColor('lightGray')))
-        self.tableWidget_kpu.item(1, 1).setBackground(QtGui.QColor(100,150,100))
-        #self.tableWidget_kpu.horizontalHeader().show(1) if self.comboBox_city.currentText()=='' else self.tableWidget_kpu.horizontalHeader().hideSection(1)
-            
+                    self.tableWidget_kpu.setItem(0,k,item)
+                    if data[index][10]==0:
+                        self.tableWidget_kpu.item(0, k).setBackground(QtGui.QColor(245,245,245))
+                        self.tableWidget_kpu.item(0, k).setForeground(QtGui.QColor(110,110,110))                   
+        cur.close()    
         self.tableWidget_kpu.resizeColumnsToContents()
 #        self.tableWidget_kpu.resizeRowsToContents()
         self.tableWidget_kpu.setMouseTracking(True)
         self.current_hover = 0
         self.tableWidget_kpu.cellEntered.connect(self.line_selection)
     
-    def line_selection(self, row, column): #нужно менять! из-за чекбокса крашится
+    def line_selection(self, row, column):
         if self.current_hover != row:
-            for j in range(self.tableWidget_kpu.columnCount()-1):
-                self.tableWidget_kpu.item(self.current_hover, j).setBackground(QBrush(QColor('white')))
+            for j in range(self.tableWidget_kpu.columnCount()):
+                if self.tableWidget_kpu.item(self.current_hover,10).text()=='0':        
+                    self.tableWidget_kpu.item(self.current_hover, j).setBackground(QtGui.QColor(245,245,245))                   
+                else:
+                    self.tableWidget_kpu.item(self.current_hover, j).setBackground(QBrush(QColor('white')))
                 self.tableWidget_kpu.item(row, j).setBackground(QBrush(QColor('lightGray')))
         self.current_hover = row
     
@@ -200,20 +196,64 @@ class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
         self.id_kpu = id_kpu 
         self.label_error.hide()
         self.conn = conn 
-        self.filtr_city()       
+        self.filtr_city() 
+        self.filtr_type()
         cur = self.conn.cursor()
         if self.id_kpu=='-1':
             self.setWindowTitle('Добавить КПУ')
             self.pushButton_pu.hide()
+            self.pushButton_replace.hide()
             self.pushButton_save.clicked.connect(self.insert)
             self.comboBox_city.setCurrentText('Обнинск')
             self.comboBox_street.setCurrentText('Поленова')
         if self.id_kpu!='-1':      
-            self.setWindowTitle('информация КПУ')
-            self.pushButton_pu.show()            
+            self.setWindowTitle('Изменить КПУ')
+            self.pushButton_pu.show()    
+            self.pushButton_replace.show()
             self.pushButton_pu.clicked.connect(self.open_pu)
             self.pushButton_replace.clicked.connect(self.replace)
             self.pushButton_save.clicked.connect(self.update)
+            self.sql_query = """SELECT  
+                              kpu.id_kpu,
+                              city.city_name, street.street_name,
+                              house.house_number, entrance.num_entr,
+                              kpu.ser_num, kpu.adress,
+                              kpu.type_kpu, kpu.floor,
+                              kpu.note, kpu.workability	                            
+                            FROM
+                              cnt.kpu  
+                              left join public.entrance
+                                on entrance.id_entr = kpu.id_entr
+                              left join public.house
+                                on house.id_house = entrance.id_house
+                              left join public.street
+                                on street.id_street = house.id_street
+                              left join public.city
+                                on city.id_city = street.id_city
+                            WHERE kpu.id_kpu = %s"""
+            cur.execute(self.sql_query, (self.id_kpu, )) 
+            data = cur.fetchall()
+            self.comboBox_city.setCurrentText(data[0][1])
+            self.comboBox_city.model().item(0).setEnabled(False)
+            self.comboBox_street.setCurrentText(data[0][2])
+            self.comboBox_street.model().item(0).setEnabled(False)
+            self.comboBox_house.setCurrentText(data[0][3])
+            self.comboBox_house.model().item(0).setEnabled(False) 
+            self.comboBox_entrance.setCurrentText(str(data[0][4]))
+            self.comboBox_entrance.model().item(0).setEnabled(False)
+            val_floor=data[0][8]
+            val_floor= '' if val_floor==None else str(val_floor)
+            #self.lineEdit_floor.setInputMask("99")# получаются пробелы
+            self.lineEdit_floor.setValidator(QRegExpValidator(QRegExp("[0-9][0-9]"))) 
+            self.lineEdit_floor.setText(val_floor) 
+            self.lineEdit_serial.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
+            self.lineEdit_serial.setText(str(data[0][5]))
+            self.spinBox_adress.setValue(data[0][6])
+            self.comboBox_type.setCurrentText(str(data[0][7]))
+            self.lineEdit_note.setText(data[0][9])
+            self.checkBox.setChecked(data[0][10])            
+            self.label.setText('id_kpu = '+str(data[0][0]))
+        cur.close()
         self.show()
     
     def update(self):
@@ -333,7 +373,22 @@ class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
             self.list_id_entrace.append(data[index][1])        
             self.comboBox_entrance.addItem(str(data[index][0]))        
         cur.close()
-        
+    
+    def filtr_type(self):
+        self.comboBox_type.clear() 
+    #    self.comboBox_type.id = []        
+    #    self.comboBox_type.addItem('')
+        cur = self.conn.cursor()
+        entrance_query = """SELECT	
+                            DISTINCT kpu.type_kpu                             
+                        FROM
+                            cnt.kpu""" 
+        cur.execute(entrance_query) 
+        data = cur.fetchall()
+        for index,row in enumerate(data):        
+            self.comboBox_type.addItem(str(data[index][0]))        
+        cur.close()
+    
 class replace_Kpu(QtWidgets.QWidget, replace_KPU_ui.Ui_Form):
     def __init__(self, id_kpu, conn):
         super().__init__()
