@@ -315,7 +315,7 @@ class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
             self.val_serial = None if self.val_serial == '' else int(self.val_serial)
             self.val_floor = str(self.lineEdit_floor.text())
             self.val_floor = None if self.val_floor == '' else int(self.val_floor)
-            self.val_note = str(self.textEdit_note.text())
+            self.val_note = self.textEdit_note.toPlainText()
             if self.val_note == '': self.val_note = None
             self.val_work = int(self.checkBox.isChecked())
             if self.id_kpu=='-1':
