@@ -134,7 +134,7 @@ class Ui_Form(object):
         self.label_street.setText(_translate("Form", "Улица"))
         self.label_house.setText(_translate("Form", "Дом"))
         self.label_entrance.setText(_translate("Form", "Подъезд"))
-        self.pushButton_filtr.setText(_translate("Form", "Отфильтровать"))
+        self.pushButton_filtr.setText(_translate("Form", "Обновить"))
         self.pushButton_add.setText(_translate("Form", "Добавить"))
         self.tableWidget_kpu.setSortingEnabled(True)
         item = self.tableWidget_kpu.horizontalHeaderItem(0)

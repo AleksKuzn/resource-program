@@ -138,7 +138,7 @@ class Ui_Form(object):
         self.label.setText(_translate("Form", "Квартира"))
         self.label_2.setText(_translate("Form", "Тип"))
         self.checkBox.setText(_translate("Form", "активные"))
-        self.pushButton_filtr.setText(_translate("Form", "Отфильтровать"))
+        self.pushButton_filtr.setText(_translate("Form", "Обновить"))
         self.pushButton_add.setText(_translate("Form", "Добавить"))
         self.tableWidget_pu.setSortingEnabled(True)
         item = self.tableWidget_pu.horizontalHeaderItem(0)

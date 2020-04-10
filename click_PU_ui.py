@@ -64,7 +64,7 @@ class Ui_Form(object):
         self.formLayout_6.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.lineEdit_3)
         self.spinBox = QtWidgets.QSpinBox(self.tab)
         self.spinBox.setMinimum(1)
-        self.spinBox.setMaximum(12)
+        self.spinBox.setMaximum(16)
         self.spinBox.setObjectName("spinBox")
         self.formLayout_6.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.spinBox)
         self.horizontalLayout_3.addLayout(self.formLayout_6)

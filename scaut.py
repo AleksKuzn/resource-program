@@ -167,19 +167,19 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         self.id_scaut = id_scaut 
         self.label_error.hide()
         self.conn = conn 
-        self.filtr_city()       
-        cur = self.conn.cursor()            
+        self.filtr_city()
+        self.lineEdit_port.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
+        self.pushButton_save.clicked.connect(self.verify)
         if self.id_scaut=='-1':
             self.setWindowTitle('Добавить СКАУТ')
             self.pushButton_kpu.hide()
-            self.pushButton_save.clicked.connect(self.insert)
             self.comboBox_city.setCurrentText('Обнинск')
             self.comboBox_street.setCurrentText('Поленова')
         if self.id_scaut!='-1':      
             self.setWindowTitle('Изменить СКАУТ')
             self.pushButton_kpu.show()
             self.pushButton_kpu.clicked.connect(self.open_kpu)
-            self.pushButton_save.clicked.connect(self.update)
+            cur = self.conn.cursor()
             self.sql_query = """SELECT
                                     city.city_name,	
                                     street.street_name,
@@ -216,86 +216,57 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             self.lineEdit_port.setText(val_port)
             self.id_entr = data[0][8]
             self.label.setText('id_entr = '+str(data[0][8]))
-        cur.close() 
+            cur.close() 
         self.show()
-
-    def update(self):
-        #Как проверить, что пользователь не удалил запись из ячейки?
+    
+    def verify(self):
         try:
            # QMessageBox.information(self, 'Информация', 'Введено валидное число: "{}"'.format(value))
-            text='Значение порта введено некорректно'
-#            if self.lineEdit_port.text()=='': text='Введите номер порта'
+            text='Введено некорректное значение'
             if self.comboBox_house.currentText()=='': 
                 text='Введите номер дома'
                 raise ValueError
-            val_id_house = int(self.list_id_house[self.comboBox_house.currentIndex()])
-            val_entr = int(self.spinBox_entr.value())
-            val_host = str(self.lineEdit_host.text())
-            if val_host == '': val_host = None
-            val_port = str(self.lineEdit_port.text())
-            val_port = None if val_port == '' else int(val_port)
-#            if val_port == '': val_port = None
-            val_login = str(self.lineEdit_login.text())
-            if val_login == '': val_login = None
-            val_pasw = str(self.lineEdit_pasw.text())
-            if val_pasw == '': val_pasw = None
-            
-            cur = self.conn.cursor()
-            sql_query = """UPDATE public.entrance
-                           SET id_house=%s, num_entr=%s, ip_rassbery=%s, port_rassbery=%s, login_user=%s, pwd_user=%s                                                                                             
-                           WHERE id_entr=%s"""
-            cur.execute(sql_query, (val_id_house, val_entr, val_host, val_port, val_login, val_pasw, self.id_entr))               
-#            self.conn.commit()
-            cur.close()
-            self.close()
-                
-        except ValueError:                          
+            self.val_id_house = int(self.list_id_house[self.comboBox_house.currentIndex()])
+            self.val_entr = int(self.spinBox_entr.value())
+            self.val_host = str(self.lineEdit_host.text())
+            if self.val_host == '': self.val_host = None
+            self.val_port = str(self.lineEdit_port.text())
+            self.val_port = None if self.val_port == '' else int(self.val_port)
+            self.val_login = str(self.lineEdit_login.text())
+            if self.val_login == '': self.val_login = None
+            self.val_pasw = str(self.lineEdit_pasw.text())
+            if self.val_pasw == '': self.val_pasw = None
+            if self.id_scaut=='-1':
+                self.insert()
+            if self.id_scaut!='-1':
+                self.update()
+        except ValueError:                         
             pal = self.label_error.palette()
             pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
             self.label_error.setPalette(pal)
             self.label_error.setText(text)     
             self.label_error.show() 
  #           QMessageBox.warning(self, 'Внимание', 'Введено некорректное значение')
+    
+    def update(self):
+        #Как проверить, что пользователь не удалил запись из ячейки?
+        cur = self.conn.cursor()
+        sql_query = """UPDATE public.entrance
+                       SET id_house=%s, num_entr=%s, ip_rassbery=%s, port_rassbery=%s, login_user=%s, pwd_user=%s                                                                                             
+                       WHERE id_entr=%s"""
+        cur.execute(sql_query, (self.val_id_house, self.val_entr, self.val_host, self.val_port, self.val_login, self.val_pasw, self.id_entr))               
+        #self.conn.commit()
+        cur.close()
+        self.close()
         
     def insert(self):
-        # не работает добавление, нету доступа
-        try:
-            text='Значение порта введено некорректно'   
-            if self.comboBox_house.currentText()=='':  
-                text='Введите номер дома'
-                raise ValueError
-            val_id_house = int(self.list_id_house[self.comboBox_house.currentIndex()])
-            val_entr = int(self.spinBox_entr.value())
-            val_host = str(self.lineEdit_host.text())
-            if val_host == '': val_host = None
-            val_port = str(self.lineEdit_port.text()) # или int?
-            val_port = None if val_port == '' else int(val_port)
-#            if val_port == '': val_port = None
-            val_login = str(self.lineEdit_login.text())
-            if val_login == '': val_login = None
-            val_pasw = str(self.lineEdit_pasw.text())
-            if val_pasw == '': val_pasw = None
-            # print(val_id_house)
-            # print(val_entr)
-            # print(val_host)
-            # print(val_port)
-            # print(val_login)
-            # print(val_pasw)
-            cur = self.conn.cursor()
-            sql_query = """INSERT INTO public.entrance(id_house, num_entr, ip_rassbery, 
-                                                port_rassbery, login_user, pwd_user)                                                                                             
-                        VALUES (%s, %s, %s, %s, %s, %s)"""
-            # print(sql_query)
-            cur.execute(sql_query, (val_id_house, val_entr, val_host, val_port, val_login, val_pasw))                
-#           self.conn.commit()
-            cur.close()                
-            self.close()
-        except ValueError:         
-                pal = self.label_error.palette()
-                pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
-                self.label_error.setPalette(pal)
-                self.label_error.setText(text)        
-                self.label_error.show()
+        cur = self.conn.cursor()
+        sql_query = """INSERT INTO public.entrance(id_house, num_entr, ip_rassbery, port_rassbery, login_user, pwd_user)                                                                                             
+                       VALUES (%s, %s, %s, %s, %s, %s)"""
+        cur.execute(sql_query, (self.val_id_house, self.val_entr, self.val_host, self.val_port, self.val_login, self.val_pasw))                
+        #self.conn.commit()
+        cur.close()                
+        self.close()
        
     def open_kpu(self):
         self.kpu = kpu.Kpu(self.conn, self.id_entr)
