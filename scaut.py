@@ -26,13 +26,26 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
         self.comboBox_city.id = []       
         self.comboBox_city.addItem('')
         cur = self.conn.cursor()
-        city_query = """SELECT
+        # city_query = """SELECT
+                            # city.city_name,	
+                            # city.id_city                             
+                        # FROM
+                            # public.city
+                           
+                        # order by city.city_name;""" 
+        city_query = """SELECT DISTINCT
                             city.city_name,	
-                            city.id_city                             
-                        FROM
-                            public.city
-                        order by city.city_name;"""                                                      
-        cur.execute(city_query)        
+                            city.id_city 
+                        FROM    
+                            public.entrance	
+                            left join public.house
+                                on house.id_house = entrance.id_house
+                            left join public.street
+                                on street.id_street = house.id_street
+                            left join public.city
+                                on city.id_city = street.id_city
+                        order by city.city_name"""
+        cur.execute(city_query)
         data = cur.fetchall()
         self.list_id_city = [0]
         for index,row in enumerate(data):           
@@ -41,20 +54,28 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
         cur.close()
         self.comboBox_city.setCurrentText('Обнинск')
         self.filtr_street()
-        self.comboBox_city.currentIndexChanged.connect(self.filtr_street)      
-        
+        self.comboBox_city.currentIndexChanged.connect(self.filtr_street)
     def filtr_street(self):     
         self.comboBox_street.clear()        
         self.comboBox_street.id = []        
         self.comboBox_street.addItem('')
         cur = self.conn.cursor() 
-        street_query = """SELECT
+        # street_query = """SELECT
+                            # street.street_name,	
+                            # street.id_street                             
+                        # FROM
+                            # public.street"""
+        street_query = """SELECT DISTINCT
                             street.street_name,	
-                            street.id_street                             
-                        FROM
-                            public.street"""                     
+                            street.id_street 
+                        FROM    
+                            public.entrance	
+                            left join public.house
+                                on house.id_house = entrance.id_house
+                            left join public.street
+                                on street.id_street = house.id_street"""                    
         street_query = street_query + " WHERE street.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()]) + " order by street.street_name"                      
-        cur.execute(street_query)        
+        cur.execute(street_query)     
         data = cur.fetchall()
         self.list_id_street = [0]
         for index,row in enumerate(data):   
@@ -64,7 +85,6 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
         self.comboBox_street.setCurrentText('Поленова')
         self.filtr_house()
         self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
-        
     def filtr_house(self):
         self.comboBox_house.clear()        
         self.comboBox_house.id = []        
@@ -74,9 +94,9 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
                             house.house_number,	
                             house.id_house                             
                         FROM
-                            public.house"""                    
+                            public.house"""                     
         house_query = house_query + " WHERE house.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) + " order by cast(substring(house.house_number from \'^[0-9]+\') as integer)"       
-        cur.execute(house_query)         
+        cur.execute(house_query)
         data = cur.fetchall()
         self.list_id_house = [0]
         for index,row in enumerate(data):  

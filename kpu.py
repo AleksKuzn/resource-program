@@ -1,7 +1,7 @@
 import sys
 import psycopg2
 import datetime
-import KPU_ui, add_KPU_ui, replace_KPU_ui, pu   
+import KPU_ui, add_KPU_ui, pu   
 from PyQt5 import QtCore, QtGui, QtWidgets
 #from PyQt5.QtWidgets import  QTableWidgetItem, QCheckBox
 #from PyQt5.QtGui import *
@@ -29,13 +29,21 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         self.comboBox_city.id = []       
         self.comboBox_city.addItem('')
         cur = self.conn.cursor()
-        city_query = """SELECT
+        city_query = """SELECT DISTINCT
                             city.city_name,	
-                            city.id_city                             
+                            city.id_city 
                         FROM
-                            public.city
-                        order by city.city_name;"""                                                      
-        cur.execute(city_query)        
+                            cnt.kpu
+                            inner join public.entrance
+                                on entrance.id_entr = kpu.id_entr
+                            left join public.house
+                                on house.id_house = entrance.id_house
+                            left join public.street
+                                on street.id_street = house.id_street
+                            left join public.city
+                                on city.id_city = street.id_city
+                        order by city.city_name"""                        
+        cur.execute(city_query)   
         data = cur.fetchall()
         self.list_id_city = [0]
         for index,row in enumerate(data):           
@@ -53,11 +61,17 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         self.comboBox_street.id = []        
         self.comboBox_street.addItem('')
         cur = self.conn.cursor() 
-        street_query = """SELECT
+        street_query = """SELECT DISTINCT
                             street.street_name,	
-                            street.id_street                             
-                        FROM
-                            public.street"""                     
+                            street.id_street 
+                        FROM    
+                            cnt.kpu
+                            left join public.entrance
+                                on entrance.id_entr = kpu.id_entr	
+                            left join public.house
+                                on house.id_house = entrance.id_house
+                            left join public.street
+                                on street.id_street = house.id_street"""                     
         street_query = street_query + " WHERE street.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()]) + " order by street.street_name"                      
         cur.execute(street_query)        
         data = cur.fetchall()
@@ -77,12 +91,24 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         self.comboBox_house.id = []        
         self.comboBox_house.addItem('')
         cur = self.conn.cursor()
-        house_query = """SELECT
+        # house_query = """SELECT
+                            # house.house_number,	
+                            # house.id_house                             
+                        # FROM
+                            # public.house""" 
+
+        house_query = """SELECT DISTINCT
                             house.house_number,	
-                            house.id_house                             
-                        FROM
-                            public.house"""                    
-        house_query = house_query + " WHERE house.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) + " order by cast(substring(house.house_number from \'^[0-9]+\') as integer)"       
+                            house.id_house
+                        FROM    
+                            cnt.kpu
+                            left join public.entrance
+                                on entrance.id_entr = kpu.id_entr	
+                            left join public.house
+                                on house.id_house = entrance.id_house"""                            
+        #house_query = house_query + " WHERE house.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) + " order by cast(substring(house.house_number from \'^[0-9]+\') as integer)"       
+        house_query = house_query + " WHERE house.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) + " order by house.house_number"       
+        
         cur.execute(house_query)         
         data = cur.fetchall()
         self.list_id_house = [0]
@@ -115,7 +141,7 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         cur.close()
         if (self.id_entr!='-1') and (self.tableWidget_kpu.rowCount() > 0):
             self.comboBox_entrance.setCurrentText(self.tableWidget_kpu.item(0,4).text())
-            self.id_entr='-1'
+            #self.id_entr='-1'
     
     def select(self):
         self.tableWidget_kpu.setRowCount(0)       
@@ -200,7 +226,7 @@ class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
         self.resize(500,300)
         self.id_kpu = id_kpu 
         self.conn = conn 
-        self.filtr_city() 
+        self.filtr_city()
         self.filtr_type()
         self.lineEdit_serial.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
         self.lineEdit_floor.setValidator(QRegExpValidator(QRegExp("[0-9][0-9]")))
@@ -214,7 +240,7 @@ class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
             self.comboBox_city.setCurrentText('Обнинск')
             self.comboBox_street.setCurrentText('Поленова')
             
-        if self.id_kpu!='-1':      
+        if self.id_kpu!='-1':
             self.setWindowTitle('Изменить информацию о КПУ')
             self.pushButton_pu.show()    
             self.pushButton_replace.show()
@@ -442,7 +468,7 @@ class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
                 raise ValueError
             self.val_typeNew = int(self.comboBox_typeNew.currentText())
             self.val_serialNew = int(self.lineEdit_serialNew.text())
-            self.val_noteNew = str(self.lineEdit_noteNew.text())
+            self.val_noteNew = str(self.textEdit_noteNew.text())
             if self.val_noteNew == '': self.val_noteNew = None
             self.val_workNew = int(self.checkBoxNew.isChecked())
             self.date_val = self.dateTimeEdit.dateTime().toString("yyyy-MM-dd hh:mm:00")
@@ -537,16 +563,16 @@ class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
             exec('self.lineEdit_k%s.setText("%s")' % (self.data_pu[index][1], self.data_pu[index][0]))
 
     def filtr_city(self):
-        self.comboBox_city.clear()        
+        self.comboBox_city.clear()
         self.comboBox_city.id = []
-        self.comboBox_city.addItem('')        
+        self.comboBox_city.addItem('') 
         cur = self.conn.cursor()
         city_query = """SELECT
                             city.city_name,	
                             city.id_city                             
                         FROM
                             public.city
-                        order by city.city_name;"""                                                      
+                        order by city.city_name;"""     
         cur.execute(city_query)  
         data = cur.fetchall()
         self.list_id_city = [0]
