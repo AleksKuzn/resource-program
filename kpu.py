@@ -3,8 +3,6 @@ import psycopg2
 import datetime
 import KPU_ui, add_KPU_ui, pu   
 from PyQt5 import QtCore, QtGui, QtWidgets
-#from PyQt5.QtWidgets import  QTableWidgetItem, QCheckBox
-#from PyQt5.QtGui import *
 from PyQt5.Qt import *
 from datetime import timedelta 
        
@@ -211,13 +209,13 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         self.current_hover = row
     
     def add_window(self):
-        self.add_kpu = add_Kpu('-1', self.conn)
+        self.add_kpu = Add_Kpu('-1', self.conn)
 
     def cell_was_clicked(self, coords):
         id_kpu=self.tableWidget_kpu.item(coords.row(), 0).text()
-        self.add_kpu = add_Kpu(id_kpu, self.conn)
+        self.add_kpu = Add_Kpu(id_kpu, self.conn)
     
-class add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
+class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
     def __init__(self, id_kpu, conn):
         super().__init__()
         self.setupUi(self)
