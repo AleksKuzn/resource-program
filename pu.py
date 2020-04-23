@@ -42,7 +42,7 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
             if (self.id_kpu!='-1') and (self.tableWidget_pu.rowCount() > 0):
                 self.comboBox_serKpu.setCurrentText(self.tableWidget_pu.item(0,9).text())
             self.comboBox_city.currentIndexChanged.connect(self.filtr_street)
-            if (self.id_kpu!='-1') and (self.tableWidget_pu.rowCount() > 0): 
+            if (self.id_kpu!='-1') and (self.tableWidget_pu.rowCount() > 0):
                 self.comboBox_city.setCurrentText(self.tableWidget_pu.item(0,1).text())
             self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
             if (self.id_kpu!='-1') and (self.tableWidget_pu.rowCount() > 0):
@@ -248,8 +248,7 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
                     kpu_query = kpu_query + " WHERE street.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) 
             else:
                 kpu_query = kpu_query + " WHERE city.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()])         
-        else:
-            kpu_query = kpu_query + " ORDER BY kpu.ser_num DESC" 
+        kpu_query = kpu_query + " ORDER BY kpu.ser_num DESC" 
         #print(kpu_query)
         cur.execute(kpu_query)
         data = cur.fetchall()
@@ -269,8 +268,8 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
                                 when 2 then 'ХВС'
                                 when 3 then 'Т'
                                 when 4 then 'Э' 
-                              end AS Тип, counter.serial_number,		
-                              kpu.ser_num, kpu.type_kpu, counter.klemma,			
+                              end AS Тип, counter.serial_number,
+                              kpu.ser_num, kpu.type_kpu, counter.klemma,
                               marka.name_marka, counter.coefficient, 
                               counter.last_pok, counter.date_install,
                               counter.date_deinstall, counter.working_capacity
@@ -278,79 +277,103 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
                               cnt.counter
                               left join public.flat
                                 on flat.id_flat = counter.id_flat
-                              inner join cnt.kpu
+                              left join cnt.kpu
                                 on counter.id_kpu=kpu.id_kpu
-                              inner join cnt.marka
+                              left join cnt.marka
                                 on counter.id_marka = marka.id_marka
                               left join public.entrance
                                 on entrance.id_entr = flat.id_entr
-                              inner join public.house
+                              left join public.house
                                 on house.id_house = entrance.id_house
-                              inner join public.street
+                              left join public.street
                                 on street.id_street = house.id_street
-                              inner join public.city
-                                on city.id_city = street.id_city"""
+                              left join public.city
+                                on city.id_city = street.id_city
+                                WHERE counter.id_flat is not null"""
+           
         if self.id_kpu!='-1':
-            self.sql_query = self.sql_query + " WHERE kpu.id_kpu = " + str(self.id_kpu)
+            self.sql_query_where = " AND kpu.id_kpu = " + str(self.id_kpu)
             self.tableWidget_pu.horizontalHeader().hideSection(1)
             self.tableWidget_pu.horizontalHeader().hideSection(2)
             self.tableWidget_pu.horizontalHeader().hideSection(3)
             self.tableWidget_pu.horizontalHeader().hideSection(4)
         if self.id_kpu=='-1':
+            self.sql_query_where = ''
+            self.tableWidget_pu.horizontalHeader().showSection(5)
+            self.tableWidget_pu.horizontalHeader().showSection(4)
+            self.tableWidget_pu.horizontalHeader().showSection(3)
+            self.tableWidget_pu.horizontalHeader().showSection(2)
+            self.tableWidget_pu.horizontalHeader().showSection(1)
             if self.comboBox_city.currentText()!='':
                 self.tableWidget_pu.horizontalHeader().hideSection(1)
-                if self.comboBox_street.currentText()!='':
-                    self.tableWidget_pu.horizontalHeader().hideSection(2)
-                    if self.comboBox_house.currentText()!='':
-                        self.tableWidget_pu.horizontalHeader().hideSection(3)
-                        if self.comboBox_entr.currentText()!='':
-                            self.tableWidget_pu.horizontalHeader().hideSection(4)
-                            if self.comboBox_floor.currentText()!='' and self.comboBox_serKpu.currentText()=='':
-                                self.tableWidget_pu.horizontalHeader().hideSection(5)
-                                if self.comboBox_flat.currentText()!='':
-                                    self.sql_query = self.sql_query + " WHERE flat.id_flat = " + str(self.list_id_flat[self.comboBox_flat.currentIndex()])
-                                else:
-                                    self.sql_query = self.sql_query + " WHERE entrance.id_entr = " + str(self.list_id_entrance[self.comboBox_entr.currentIndex()]) + " AND flat.flatfloor = " + str(self.comboBox_floor.currentText())
-                            else:
-                                self.tableWidget_pu.horizontalHeader().showSection(5)
-                                self.sql_query = self.sql_query + " WHERE entrance.id_entr = " + str(self.list_id_entrance[self.comboBox_entr.currentIndex()])
-                        else: 
-                            self.tableWidget_pu.horizontalHeader().showSection(5)
-                            self.tableWidget_pu.horizontalHeader().showSection(4)
-                            self.sql_query = self.sql_query + " WHERE house.id_house = " + str(self.list_id_house[self.comboBox_house.currentIndex()])
-                    else:
-                        self.tableWidget_pu.horizontalHeader().showSection(5)
-                        self.tableWidget_pu.horizontalHeader().showSection(4)
-                        self.tableWidget_pu.horizontalHeader().showSection(3)
-                        self.sql_query = self.sql_query + " WHERE street.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) 
-                else:
-                    self.tableWidget_pu.horizontalHeader().showSection(5)
-                    self.tableWidget_pu.horizontalHeader().showSection(4)
-                    self.tableWidget_pu.horizontalHeader().showSection(3)
-                    self.tableWidget_pu.horizontalHeader().showSection(2)
-                    self.sql_query = self.sql_query + " WHERE city.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()])         
-            else:
-                self.tableWidget_pu.horizontalHeader().showSection(5)
-                self.tableWidget_pu.horizontalHeader().showSection(4)
-                self.tableWidget_pu.horizontalHeader().showSection(3)
-                self.tableWidget_pu.horizontalHeader().showSection(2)
-                self.tableWidget_pu.horizontalHeader().showSection(1)
+                self.sql_query_where = self.sql_query_where + " AND city.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()])
+            if self.comboBox_street.currentText()!='':
+                self.tableWidget_pu.horizontalHeader().hideSection(2)
+                self.sql_query_where = self.sql_query_where + " AND street.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()])
+            if self.comboBox_house.currentText()!='':
+                self.tableWidget_pu.horizontalHeader().hideSection(3)
+                self.sql_query_where = self.sql_query_where + " AND house.id_house = " + str(self.list_id_house[self.comboBox_house.currentIndex()])
+            if self.comboBox_entr.currentText()!='':
+                self.tableWidget_pu.horizontalHeader().hideSection(4)
+                self.sql_query_where = self.sql_query_where + " AND entrance.id_entr = " + str(self.list_id_entrance[self.comboBox_entr.currentIndex()])
+            if self.comboBox_floor.currentText()!='' and self.comboBox_serKpu.currentText()=='':
+                self.tableWidget_pu.horizontalHeader().hideSection(5)
+                self.sql_query_where = self.sql_query_where + " AND flat.flatfloor = " + str(self.comboBox_floor.currentText())
+            if self.comboBox_flat.currentText()!='' and self.comboBox_serKpu.currentText()=='':
+                self.sql_query_where = self.sql_query_where + " AND flat.id_flat = " + str(self.list_id_flat[self.comboBox_flat.currentIndex()])
             if self.comboBox_serKpu.currentText()!='':
-                self.sql_query = self.sql_query + " AND kpu.id_kpu = " + str(self.list_id_kpu[self.comboBox_serKpu.currentIndex()]) #Работает без WHERE, как?
+                self.sql_query_where = self.sql_query_where + " AND kpu.id_kpu = " + str(self.list_id_kpu[self.comboBox_serKpu.currentIndex()])
                 ser_kpu = self.comboBox_serKpu.currentText()
                 self.comboBox_floor.setCurrentText('')
                 self.comboBox_flat.setCurrentText('')
                 self.comboBox_serKpu.setCurrentText(ser_kpu)
             if self.comboBox_type.currentText()!='':
-                self.sql_query = self.sql_query + " AND counter.type_counter = " + str(self.comboBox_type.currentIndex())
+                self.sql_query_where = self.sql_query_where + " AND counter.type_counter = " + str(self.comboBox_type.currentIndex())
             if self.checkBox_true.isChecked() and not (self.checkBox_false.isChecked()):
-                self.sql_query = self.sql_query + " AND counter.working_capacity = 'TRUE'"
+                self.sql_query_where = self.sql_query_where + " AND counter.working_capacity = 'TRUE'"
             if self.checkBox_false.isChecked() and not (self.checkBox_true.isChecked()):
-                self.sql_query = self.sql_query + " AND counter.working_capacity = 'FALSE'"
-        self.sql_query = self.sql_query + " ORDER BY city.city_name, street.street_name, cast(substring(house.house_number from '^[0-9]+') as integer), cast(entrance.num_entr as integer), flat.num_flat, counter.type_counter DESC"     
+                self.sql_query_where = self.sql_query_where + " AND counter.working_capacity = 'FALSE'"
+        self.sql_query = self.sql_query + self.sql_query_where
+        self.sql_query = self.sql_query + """ UNION
+                            SELECT
+                                counter.id_klemma, city.city_name,
+                                street.street_name, house.house_number,
+                                entrance.num_entr, flat.flatfloor, flat.num_flat,
+                                case counter.type_counter
+                                when 1 then 'ГВС'
+                                when 2 then 'ХВС'
+                                when 3 then 'Т'
+                                when 4 then 'Э' 
+                                end AS Тип, counter.serial_number,
+                                kpu.ser_num, kpu.type_kpu, counter.klemma,
+                                marka.name_marka, counter.coefficient, 
+                                counter.last_pok, counter.date_install,
+                                counter.date_deinstall, counter.working_capacity
+                            FROM
+                                cnt.counter
+                                inner join public.entrance
+                                on entrance.id_entr = counter.id_entr
+                                left join public.flat
+                                on flat.id_flat = counter.id_flat
+                                left join cnt.kpu
+                                on counter.id_kpu=kpu.id_kpu
+                                left join cnt.marka
+                                on counter.id_marka = marka.id_marka
+                                left join public.house
+                                on house.id_house = entrance.id_house
+                                left join public.street
+                                on street.id_street = house.id_street
+                                left join public.city
+                                on city.id_city = street.id_city
+                            WHERE counter.id_flat is null"""
+        self.sql_query = self.sql_query + self.sql_query_where                    
+        #self.sql_query = self.sql_query + " ORDER BY city.city_name, street.street_name, cast(substring(house.house_number from \'^[0-9]+\') as integer), cast(entrance.num_entr as integer), flat.num_flat, counter.type_counter DESC"     
+        self.sql_query = self.sql_query + " ORDER BY 2 DESC, 3 DESC, 4 DESC, 5 DESC, 7 DESC, 8 DESC" 
+        print(self.sql_query)
         cur = self.conn.cursor()
-        cur.execute(self.sql_query)  
+        cur.execute(self.sql_query)       
         data = cur.fetchall()
+        cur.close() 
         for index,row in enumerate(data):
             self.tableWidget_pu.insertRow(0)
             for k in range(len(row)):
@@ -358,8 +381,7 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
                     self.tableWidget_pu.setItem(0,k,item)
                     if data[index][17]==False:
                         self.tableWidget_pu.item(0, k).setBackground(QtGui.QColor(245,245,245))
-                        self.tableWidget_pu.item(0, k).setForeground(QtGui.QColor(110,110,110))             
-        cur.close() 
+                        self.tableWidget_pu.item(0, k).setForeground(QtGui.QColor(110,110,110))   
         self.tableWidget_pu.resizeColumnsToContents()
         self.tableWidget_pu.setMouseTracking(True)
         self.current_hover = 0
@@ -385,7 +407,7 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
         
     def cell_was_clicked(self, coords):
         id_pu=self.tableWidget_pu.item(coords.row(), 0).text()
-        #self.info_pu=Info_Pu(id_pu, self.conn)
+        self.info_pu=Info_Pu(id_pu, self.conn)
 
 class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
     def __init__(self, conn, ser_num_kpu, city_name, street_name, house_number, entrance_number):
@@ -423,7 +445,6 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
         self.pushButton_cansel.clicked.connect(self.cansel)
         self.pushButton_addFlat.clicked.connect(self.insert_flat)
         self.setWindowTitle('Добавить квартирный ПУ')
-        #self.select()
         self.show()
     
     def checkType(self):
@@ -437,76 +458,6 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
             self.comboBox_entr.hide()
             self.label_coefons.hide()
             self.lineEdit_coefons.hide() 
-    
-    def select(self):
-        cur = self.conn.cursor()
-        self.sql_query = """SELECT  			 			
-                          counter.consumption_coeff, city.city_name,
-                          street.street_name, house.house_number,
-                          entrance.num_entr, flat.flatfloor, flat.num_flat,
-                          case counter.type_counter 		
-                            when 1 then 'ГВС'
-                            when 2 then 'ХВС'
-                            when 3 then 'Т'
-                            when 4 then 'Э' 
-                          end AS Тип, counter.serial_number,		
-                          kpu.ser_num, kpu.type_kpu, counter.klemma,			
-                          marka.name_marka, counter.coefficient, 
-                          counter.last_pok, counter.date_install,
-                          counter.date_deinstall, counter.working_capacity
-                        FROM
-                          cnt.counter
-                          left join public.flat
-                            on flat.id_flat = counter.id_flat
-                          inner join cnt.kpu
-                            on counter.id_kpu=kpu.id_kpu
-                          inner join cnt.marka
-                            on counter.id_marka = marka.id_marka
-                          left join public.entrance
-                            on entrance.id_entr = flat.id_entr
-                          inner join public.house
-                            on house.id_house = entrance.id_house
-                          inner join public.street
-                            on street.id_street = house.id_street
-                          inner join public.city
-                            on city.id_city = street.id_city
-                        WHERE counter.id_klemma = %s"""
-        cur.execute(self.sql_query, (self.id_pu, ))
-        data = cur.fetchall()
-        self.consumption_coeff = data[0][0]
-        self.city_name = data[0][1]
-        self.street_name = data[0][2]
-        self.house_number = data[0][3]
-        self.num_entr = data[0][4]
-        self.flatfloor = data[0][5]
-        self.flat = data[0][6]
-        self.type_pu = data[0][7]
-        self.ser_num_pu = data[0][8]
-        self.ser_num_kpu = data[0][9]
-        self.type_kpu = data[0][10]
-        self.klemma = data[0][11]
-        self.marka = data[0][12]
-        self.coefficient = data[0][13]
-        self.last_pok = data[0][14]
-        self.date_install = data[0][15]
-        self.date_deinstall = data[0][16]
-        self.workability = data[0][17]
-        self.comboBox_city.setCurrentText(self.city_name)
-        self.comboBox_city.model().item(0).setEnabled(False)
-        self.comboBox_street.setCurrentText(self.street_name)
-        self.comboBox_street.model().item(0).setEnabled(False)
-        self.comboBox_house.setCurrentText(self.house_number)
-        self.comboBox_house.model().item(0).setEnabled(False)
-        self.comboBox_entrance.setCurrentText(str(self.num_entr))
-        self.comboBox_entrance.model().item(0).setEnabled(False)
-        self.lineEdit_floor.setText('' if self.floor==None else str(self.floor))
-        self.lineEdit_serial.setText('' if self.ser_num==None else str(self.ser_num))
-        self.spinBox_adress.setValue(self.adress)
-        self.comboBox_type.setCurrentText(str(self.type_kpu))
-        self.textEdit_note.setText(self.note)
-        self.checkBox.setChecked(self.workability)
-        self.label.setText('id_kpu = ' + self.id_kpu)
-        cur.close()
 
     def verify(self): #Доработать ошибки
         try:
@@ -575,6 +526,7 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
                 self.resize(800,300)
                 self.insert_pu()
                 if not self.box_work: self.close()
+                if self.val_klemma == None: self.close()
                 self.widget.setEnabled(False)
                 self.widget_stZn.show()
                 self.label_error.hide()
@@ -628,20 +580,16 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
         sql_query = """INSERT INTO cnt.counter(klemma, id_kpu, id_entr, id_flat, 
                         id_marka, coefficient, serial_number, working_capacity, 
                         date_install, id_house, type_counter, consumption_coeff)                                                                                             
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id_klemma;"""
         cur.execute(sql_query, (self.val_klemma, self.val_id_kpu, self.val_id_entr, self.val_id_flat, 
                     self.val_id_marka, self.val_coef, self.val_serial, self.box_work,
                     self.val_date, self.val_id_house, self.val_type, self.val_coefons)) 
         #self.conn.commit()
-        cur.close()
-        print('insert pu')
-        cur = self.conn.cursor()
-        sql_query = """SELECT max(id_klemma)
-                       FROM cnt.counter"""
-        cur.execute(sql_query)
         data = cur.fetchall()
         cur.close()
         self.id_klemma=data[0][0]
+        self.label.setText('id_klemma = ' + str(self.id_klemma))
+        print('insert pu')
 
     def findFlat(self):
         cur = self.conn.cursor()
@@ -831,26 +779,137 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
         self.id_pu = id_pu
         self.widget_puNew.hide()
         self.label_error.hide()
-        self.resize(500,300)
-        self.pushButton_addStart.clicked.connect(self.add_start)
-        self.pushButton_save.clicked.connect(self.verify)
-        self.pushButton_replace.clicked.connect(self.replace)
-        
-        if self.id_pu=='-1':
-            self.setWindowTitle('Добавить ПУ')
-            self.tabWidget.setTabEnabled(2,False)
-            self.tabWidget.setTabText(2,'')
-            self.tabWidget.setTabEnabled(3,False)
-            self.tabWidget.setTabText(3,'')
-            self.tabWidget.setTabEnabled(1,False)
-            self.frame.hide()
-            self.pushButton_kpu.hide()
-            self.pushButton_replace.hide()
-            self.flagInsert = False
-        if self.id_pu!='-1':
-            self.setWindowTitle('Изменить информацию о ПУ')
+        self.resize(550,350)
+        self.setWindowTitle('Изменить информацию о ПУ')
+        #self.pushButton_kpu.clicked.connect(self.open_kpu)
+        #self.pushButton_save.clicked.connect(self.verify)
+        #self.pushButton_replace.clicked.connect(self.replace)
+        #self.pushButton_replaceNew.clicked.connect(self.verify)
+        #self.pushButton_canselNew.clicked.connect(self.verify)
+        #self.pushButton_addStart.clicked.connect(self.add_start)
+        #self.pushButton_showVal.clicked.connect(self.verify)
+        self.lineEdit_serKpu.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
+        self.lineEdit_flat.setValidator(QRegExpValidator(QRegExp("[1-9][0-9]{,3}")))
+        self.lineEdit_klemma.setValidator(QRegExpValidator(QRegExp("[1-9][0-9]")))
+        self.lineEdit_coefons.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
+        self.lineEdit_coef.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
+        self.dateEdit_dateInstall.setDate(datetime.date.today())
+        self.dateTimeEdit_dateNew.setDateTime(datetime.datetime.today().replace(minute=0, second=0))
+        print('0')
+        self.select()
+        print('1')
+        self.filtr()
+        self.filling()
         self.show()
-            
+    
+    def filling(self):
+        pass
+        self.comboBox_city.setCurrentText(self.city_name)
+        self.comboBox_street.setCurrentText(self.street_name)
+        self.comboBox_house.setCurrentText(self.house_number)
+        self.comboBox_entr.setCurrentText(str(self.num_entr))
+        self.lineEdit_floor.setText('' if self.flatfloor==None else str(self.flatfloor))
+        self.lineEdit_serKpu.setText('' if self.ser_num_kpu==None else str(self.ser_num_kpu))
+        self.lineEdit_serial.setText('' if self.ser_num_pu==None else str(self.ser_num_pu))
+        self.lineEdit_flat.setText('' if self.flat==None else str(self.flat))
+        self.comboBox_type.setCurrentText(self.type_pu)
+        self.label_typeKPU.setText('' if self.type_kpu==None else str(self.type_kpu))
+        self.label_dateLast.setText('' if self.last_date==None else str(self.last_date))
+        self.label_value.setText('' if self.last_pok==None else str(self.last_pok))
+        self.checkBox.setChecked(self.workability)
+        self.lineEdit_klemma.setText('' if self.klemma==None else str(self.klemma))
+        self.lineEdit_coef.setText('' if self.coefficient==None else str(self.coefficient))
+        self.lineEdit_coefons.setText('' if self.consumption_coeff==None else str(self.consumption_coeff))
+        self.comboBox_marka.setCurrentText(self.marka)
+        if self.date_install == None: 
+            self.dateEdit_install.hide()
+            self.label_install.hide()
+        else: self.dateEdit_install.setDate(self.date_install)
+        if self.date_deinstall == None: 
+            self.dateEdit_deinstall.hide()
+            self.label_deinstall.hide()
+        else: self.dateEdit_deinstall.setDate(self.date_deinstall)
+        self.label.setText('id_klemma = ' + self.id_pu)
+        
+    def select(self):
+        cur = self.conn.cursor()
+        self.sql_query_flat = """SELECT  			 			
+                          counter.id_flat
+                        FROM
+                          cnt.counter
+                        WHERE counter.id_klemma = %s"""
+        cur.execute(self.sql_query_flat, (self.id_pu, ))
+        flat = cur.fetchall()
+        self.sql_query = """SELECT  			 			
+                          counter.consumption_coeff, city.city_name,
+                          street.street_name, house.house_number,
+                          entrance.num_entr, flat.flatfloor, flat.num_flat,
+                          case counter.type_counter 		
+                            when 1 then 'ГВС'
+                            when 2 then 'ХВС'
+                            when 3 then 'Т'
+                            when 4 then 'Э' 
+                          end AS Тип, counter.serial_number,		
+                          kpu.ser_num, kpu.type_kpu, counter.klemma,			
+                          marka.name_marka, counter.coefficient, 
+                          counter.last_pok, counter.date_install,
+                          counter.date_deinstall, counter.working_capacity,
+                          counter.last_date
+                        FROM
+                          cnt.counter"""
+        if flat[0][0] == None:
+            print('none')
+            self.sql_query = self.sql_query + """
+                          left join public.entrance
+                            on entrance.id_entr = counter.id_entr"""
+        else:
+            print('yes')
+            self.sql_query = self.sql_query + """
+                          left join public.flat
+                            on flat.id_flat = counter.id_flat
+                          left join public.entrance
+                            on entrance.id_entr = flat.id_entr  """
+        self.sql_query = self.sql_query + """                    
+                          inner join cnt.kpu
+                            on counter.id_kpu=kpu.id_kpu
+                          inner join cnt.marka
+                            on counter.id_marka = marka.id_marka
+                          inner join public.house
+                            on house.id_house = entrance.id_house
+                          inner join public.street
+                            on street.id_street = house.id_street
+                          inner join public.city
+                            on city.id_city = street.id_city
+                        WHERE counter.id_klemma = %s"""
+        print(self.sql_query)
+        cur.execute(self.sql_query, (self.id_pu, ))
+        data = cur.fetchall()
+        print('000')
+        cur.close()
+        self.consumption_coeff = data[0][0]
+        self.city_name = data[0][1]
+        self.street_name = data[0][2]
+        self.house_number = data[0][3]
+        self.num_entr = data[0][4]
+        self.flatfloor = data[0][5]
+        self.flat = data[0][6]
+        self.type_pu = data[0][7]
+        self.ser_num_pu = data[0][8]
+        self.ser_num_kpu = data[0][9]
+        self.type_kpu = data[0][10]
+        self.klemma = data[0][11]
+        self.marka = data[0][12]
+        self.coefficient = data[0][13]
+        self.last_pok = data[0][14]
+        self.date_install = data[0][15]
+        self.date_deinstall = data[0][16]
+        self.workability = data[0][17]
+        self.last_date = data[0][18]
+ 
+    def open_kpu(self):
+        self.kpu = kpu.Kpu(self.conn, self.id_entr)
+        self.close()
+        
     def save(self):
         self.close()
 
@@ -918,4 +977,125 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
         
     def replace(self):
         pass
+        
+    def filtr(self):
+            self.filtr_city()
+            self.comboBox_city.currentIndexChanged.connect(self.filtr_street)
+            self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
+            self.comboBox_house.currentIndexChanged.connect(self.filtr_entrance) 
+            self.filtr_marka()
+            self.comboBox_type.currentIndexChanged.connect(self.filtr_marka)
+            
+    def filtr_city(self):
+        self.comboBox_city.clear()        
+        self.comboBox_city.id = []
+        self.list_id_city = [0]
+        self.comboBox_city.addItem('')
+        cur = self.conn.cursor()
+        city_query = """SELECT DISTINCT
+                            city.city_name,	
+                            city.id_city 
+                        FROM
+                            public.entrance
+                            left join public.house
+                                on house.id_house = entrance.id_house
+                            left join public.street
+                                on street.id_street = house.id_street
+                            left join public.city
+                                on city.id_city = street.id_city
+                            order by city.city_name"""
+        cur.execute(city_query)        
+        data = cur.fetchall()
+        for index,row in enumerate(data):           
+            self.list_id_city.append(data[index][1])
+            self.comboBox_city.addItem(str(data[index][0]))
+        cur.close()
+        
+    def filtr_street(self):  
+        self.comboBox_street.clear()        
+        self.comboBox_street.id = []
+        self.list_id_street = [0]
+        self.comboBox_street.addItem('')
+        cur = self.conn.cursor() 
+        street_query = """SELECT DISTINCT
+                            street.street_name,	
+                            street.id_street 
+                        FROM
+                            public.entrance
+                            left join public.house
+                                on house.id_house = entrance.id_house
+                            left join public.street
+                                on street.id_street = house.id_street"""                    
+        street_query = street_query + " WHERE street.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()]) + " order by street.street_name"                      
+        cur.execute(street_query)        
+        data = cur.fetchall()
+        cur.close()
+        for index,row in enumerate(data):   
+            self.list_id_street.append(data[index][1])
+            self.comboBox_street.addItem(str(data[index][0]))    
+        
+    def filtr_house(self):
+        self.comboBox_house.clear()        
+        self.comboBox_house.id = []
+        self.list_id_house = [0]
+        self.comboBox_house.addItem('')
+        cur = self.conn.cursor()
+        house_query = """SELECT DISTINCT
+                            house.house_number,	
+                            house.id_house 
+                        FROM
+                            public.entrance
+                            left join public.house
+                                on house.id_house = entrance.id_house"""
+        house_query = house_query + " WHERE house.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) + " order by house.house_number"       
+        cur.execute(house_query)   
+        data = cur.fetchall()
+        for index,row in enumerate(data):  
+            self.list_id_house.append(data[index][1])  
+            self.comboBox_house.addItem(str(data[index][0]))          
+        cur.close()
+        
+    def filtr_entrance(self):
+        self.comboBox_entr.clear()        
+        self.comboBox_entr.id = [] 
+        self.list_id_entrance = [0]
+        self.comboBox_entr.addItem('')
+        cur = self.conn.cursor()
+        entrance_query = """SELECT
+                            entrance.num_entr,	
+                            entrance.id_entr                             
+                        FROM
+                            public.entrance"""    
+        entrance_query = entrance_query + " WHERE entrance.id_house = " + str(self.list_id_house[self.comboBox_house.currentIndex()]) + " order by cast(entrance.num_entr as integer)"
+        cur.execute(entrance_query) 
+        data = cur.fetchall()
+        for index,row in enumerate(data):
+            self.list_id_entrance.append(data[index][1])        
+            self.comboBox_entr.addItem(str(data[index][0]))
+        cur.close()
+        
+    def filtr_marka(self):
+        self.comboBox_marka.clear()        
+        self.comboBox_marka.id = [] 
+        self.comboBox_markaNew.clear()        
+        self.comboBox_markaNew.id = [] 
+        self.list_id_marka = [0]
+        self.comboBox_marka.addItem('')
+        self.comboBox_markaNew.addItem('')
+        cur = self.conn.cursor()
+        entrance_query = """SELECT
+                            marka.name_marka,
+                            marka.id_marka                            
+                        FROM
+                            cnt.marka"""                            
+        entrance_query = entrance_query + " WHERE marka.type_counter = " + str(self.comboBox_type.currentIndex())
+        entrance_query = entrance_query + " order by marka.name_marka"
+        cur.execute(entrance_query) 
+        data = cur.fetchall()
+        for index,row in enumerate(data):
+            self.list_id_marka.append(data[index][1])        
+            self.comboBox_marka.addItem(str(data[index][0])) 
+            self.comboBox_markaNew.addItem(str(data[index][0]))
+        cur.close()
+            
         

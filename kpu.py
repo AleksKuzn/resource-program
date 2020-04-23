@@ -139,7 +139,7 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         cur.close()
         if (self.id_entr!='-1') and (self.tableWidget_kpu.rowCount() > 0):
             self.comboBox_entrance.setCurrentText(self.tableWidget_kpu.item(0,4).text())
-            #self.id_entr='-1'
+            self.id_entr='-1'
     
     def select(self):
         self.tableWidget_kpu.setRowCount(0)       
@@ -163,29 +163,38 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
         if self.id_entr!='-1':
             self.sql_query = self.sql_query + " WHERE kpu.id_entr = " + str(self.id_entr)
             self.tableWidget_kpu.horizontalHeader().hideSection(1)
+            
         if self.id_entr=='-1':
+            self.tableWidget_kpu.horizontalHeader().showSection(1)
             if self.comboBox_city.currentText()!='':
                 self.tableWidget_kpu.horizontalHeader().hideSection(1)
-                if self.comboBox_street.currentText()!='':
-                    if self.comboBox_house.currentText()!='':
-                        if self.comboBox_entrance.currentText()!='':
-                            self.sql_query = self.sql_query + " WHERE entrance.id_entr = " + str(self.list_id_entrace[self.comboBox_entrance.currentIndex()])
-                        else:                    
-                            self.sql_query = self.sql_query + " WHERE house.id_house = " + str(self.list_id_house[self.comboBox_house.currentIndex()])
-                    else:
-                        self.sql_query = self.sql_query + " WHERE street.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) 
-                else:   
-                    self.sql_query = self.sql_query + " WHERE city.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()])         
-            else: self.tableWidget_kpu.horizontalHeader().showSection(1)
-        self.sql_query = self.sql_query + " ORDER BY city.city_name, street.street_name, cast(substring(house.house_number from \'^[0-9]+\') as integer), cast(entrance.num_entr as integer), kpu.type_kpu, kpu.adress DESC"     
+                self.sql_query = self.sql_query + " WHERE city.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()])
+            if self.comboBox_street.currentText()!='':
+                self.sql_query = self.sql_query + " AND street.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) 
+            if self.comboBox_house.currentText()!='':
+                self.sql_query = self.sql_query + " AND house.id_house = " + str(self.list_id_house[self.comboBox_house.currentIndex()])
+            if self.comboBox_entrance.currentText()!='':
+                self.sql_query = self.sql_query + " AND entrance.id_entr = " + str(self.list_id_entrace[self.comboBox_entrance.currentIndex()])
+            # if self.comboBox_city.currentText()!='':
+                # self.tableWidget_kpu.horizontalHeader().hideSection(1)
+                # if self.comboBox_street.currentText()!='':
+                    # if self.comboBox_house.currentText()!='':
+                        # if self.comboBox_entrance.currentText()!='':
+                            # self.sql_query = self.sql_query + " WHERE entrance.id_entr = " + str(self.list_id_entrace[self.comboBox_entrance.currentIndex()])
+                        # else:                    
+                            # self.sql_query = self.sql_query + " WHERE house.id_house = " + str(self.list_id_house[self.comboBox_house.currentIndex()])
+                    # else:
+                        # self.sql_query = self.sql_query + " WHERE street.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) 
+                # else:   
+                    # self.sql_query = self.sql_query + " WHERE city.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()])         
+            # else: self.tableWidget_kpu.horizontalHeader().showSection(1)
+        self.sql_query = self.sql_query + " ORDER BY city.city_name DESC, street.street_name DESC, cast(substring(house.house_number from \'^[0-9]+\') as integer) DESC, cast(entrance.num_entr as integer) DESC, kpu.type_kpu DESC, kpu.adress DESC"     
         cur = self.conn.cursor()
         cur.execute(self.sql_query)   
         data = cur.fetchall()
         for index,row in enumerate(data):
             self.tableWidget_kpu.insertRow(0)
             for k in range(len(row)):
-#                if str(data[index][k])!='':
-#                    item = QTableWidgetItem(str(data[index][k]))
                     item = QTableWidgetItem('' if data[index][k]==None else str(data[index][k]))                 
                     self.tableWidget_kpu.setItem(0,k,item)
                     if data[index][10]==0:

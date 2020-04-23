@@ -5,7 +5,6 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import  QTableWidgetItem
 from PyQt5.QtGui import *
 from PyQt5.Qt import *
-#from PyQt5.QtCore import *
 
 class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
     def __init__(self, conn):
@@ -14,11 +13,16 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
         self.setWindowTitle('СКАУТ')      
         self.conn = conn
         self.pushButton_add.clicked.connect(self.add_window)
-        self.tableWidget_scaut.doubleClicked.connect(self.cell_was_clicked)        
-        self.filtr_city()
-        self.select()
+        self.tableWidget_scaut.doubleClicked.connect(self.cell_was_clicked)
         self.pushButton_filtr.clicked.connect(self.select)
         self.tableWidget_scaut.horizontalHeader().hideSection(4)
+        self.select()
+        self.filtr_city()
+        self.comboBox_city.currentIndexChanged.connect(self.filtr_street)
+        self.comboBox_city.setCurrentText('Обнинск')
+        self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
+        self.comboBox_street.setCurrentText('Поленова')
+        self.comboBox_house.currentIndexChanged.connect(self.filtr_entrance)
         self.show()   
         
     def filtr_city(self):
@@ -26,13 +30,6 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
         self.comboBox_city.id = []       
         self.comboBox_city.addItem('')
         cur = self.conn.cursor()
-        # city_query = """SELECT
-                            # city.city_name,	
-                            # city.id_city                             
-                        # FROM
-                            # public.city
-                           
-                        # order by city.city_name;""" 
         city_query = """SELECT DISTINCT
                             city.city_name,	
                             city.id_city 
@@ -52,19 +49,12 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
             self.list_id_city.append(data[index][1])
             self.comboBox_city.addItem(str(data[index][0]))
         cur.close()
-        self.comboBox_city.setCurrentText('Обнинск')
-        self.filtr_street()
-        self.comboBox_city.currentIndexChanged.connect(self.filtr_street)
+        
     def filtr_street(self):     
         self.comboBox_street.clear()        
         self.comboBox_street.id = []        
         self.comboBox_street.addItem('')
         cur = self.conn.cursor() 
-        # street_query = """SELECT
-                            # street.street_name,	
-                            # street.id_street                             
-                        # FROM
-                            # public.street"""
         street_query = """SELECT DISTINCT
                             street.street_name,	
                             street.id_street 
@@ -81,10 +71,8 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
         for index,row in enumerate(data):   
             self.list_id_street.append(data[index][1])
             self.comboBox_street.addItem(str(data[index][0]))    
-        cur.close()      
-        self.comboBox_street.setCurrentText('Поленова')
-        self.filtr_house()
-        self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
+        cur.close()  
+        
     def filtr_house(self):
         self.comboBox_house.clear()        
         self.comboBox_house.id = []        
@@ -102,8 +90,7 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
         for index,row in enumerate(data):  
             self.list_id_house.append(data[index][1])  
             self.comboBox_house.addItem(str(data[index][0]))          
-        cur.close()
-        self.comboBox_house.currentIndexChanged.connect(self.filtr_entrance)
+        cur.close()  
         
     def filtr_entrance(self):
         self.comboBox_entrance.clear()        
@@ -151,7 +138,7 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
                     self.sql_query = self.sql_query + " WHERE street.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) 
             else:   
                 self.sql_query = self.sql_query + " WHERE city.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()]) 
-        self.sql_query = self.sql_query + " ORDER BY city.city_name, street.street_name, cast(substring(house.house_number from \'^[0-9]+\') as integer), cast(entrance.num_entr as integer) DESC"      
+        self.sql_query = self.sql_query + " ORDER BY city.city_name DESC, street.street_name DESC, cast(substring(house.house_number from \'^[0-9]+\') as integer) DESC, cast(entrance.num_entr as integer) DESC"      
         cur = self.conn.cursor()
         cur.execute(self.sql_query)        
         data = cur.fetchall()
@@ -174,13 +161,13 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
         self.current_hover = row
         
     def add_window(self):
-        self.add_scaut = add_Scaut('-1', self.conn)
+        self.add_scaut = Add_Scaut('-1', self.conn)
 
     def cell_was_clicked(self, coords):
         id_scaut=self.tableWidget_scaut.item(coords.row(), 4).text()
-        self.add_scaut = add_Scaut(id_scaut, self.conn)    
+        self.add_scaut = Add_Scaut(id_scaut, self.conn)    
 
-class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
+class Add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
     def __init__(self, id_scaut, conn):
         super().__init__()
         self.setupUi(self)
@@ -188,12 +175,14 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         self.label_error.hide()
         self.conn = conn 
         self.filtr_city()
+        self.comboBox_city.currentIndexChanged.connect(self.filtr_street)
+        self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
         self.lineEdit_port.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
         self.pushButton_save.clicked.connect(self.verify)
         if self.id_scaut=='-1':
             self.setWindowTitle('Добавить СКАУТ')
             self.pushButton_kpu.hide()
-            self.comboBox_city.setCurrentText('Обнинск')
+            #self.comboBox_city.setCurrentText('Обнинск')
             self.comboBox_street.setCurrentText('Поленова')
         if self.id_scaut!='-1':      
             self.setWindowTitle('Изменить СКАУТ')
@@ -302,7 +291,8 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
                             city.id_city                             
                         FROM
                             public.city
-                        order by city.city_name;"""                                                      
+                           
+                        order by city.city_name"""                                                     
         cur.execute(city_query)        
         data = cur.fetchall()
         self.list_id_city = [0]
@@ -310,13 +300,12 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
             self.list_id_city.append(data[index][1])
             self.comboBox_city.addItem(str(data[index][0]))
         cur.close()
-        self.filtr_street()
-        self.comboBox_city.currentIndexChanged.connect(self.filtr_street)      
         
-    def filtr_street(self):     
-        self.comboBox_street.clear()        
-        self.comboBox_street.id = []        
-        self.comboBox_street.addItem('')      
+    def filtr_street(self):
+        self.comboBox_street.clear()  
+        self.comboBox_street.id = []
+        self.list_id_street = [0]
+        self.comboBox_street.addItem('') 
         cur = self.conn.cursor() 
         street_query = """SELECT
                             street.street_name,	
@@ -326,24 +315,21 @@ class add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         street_query = street_query + " WHERE street.id_city = " + str(self.list_id_city[self.comboBox_city.currentIndex()]) + " order by street.street_name"                      
         cur.execute(street_query)        
         data = cur.fetchall()
-        self.list_id_street = [0]
         for index,row in enumerate(data):   
             self.list_id_street.append(data[index][1])
             self.comboBox_street.addItem(str(data[index][0]))    
-        cur.close()      
-        self.filtr_house()
-        self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
+        cur.close() 
         
     def filtr_house(self):
-        self.comboBox_house.clear()        
-        self.comboBox_house.id = []        
+        self.comboBox_house.clear() 
+        self.comboBox_house.id = []
         self.comboBox_house.addItem('')
-        cur = self.conn.cursor()        
+        cur = self.conn.cursor()
         house_query = """SELECT
                             house.house_number,	
                             house.id_house                             
                         FROM
-                            public.house"""   
+                            public.house""" 
         house_query = house_query + " WHERE house.id_street = " + str(self.list_id_street[self.comboBox_street.currentIndex()]) + " order by cast(substring(house.house_number from \'^[0-9]+\') as integer)"          
         cur.execute(house_query)  
         data = cur.fetchall()
