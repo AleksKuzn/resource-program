@@ -3,8 +3,6 @@ import psycopg2
 import datetime
 import PU_ui, add_PU_ui, info_PU_ui, KPU_ui    
 from PyQt5 import QtCore, QtGui, QtWidgets
-#from PyQt5.QtWidgets import  QTableWidgetItem, QCheckBox
-#from PyQt5.QtGui import *
 from PyQt5.Qt import *
 from datetime import timedelta 
        
@@ -290,7 +288,6 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
                               left join public.city
                                 on city.id_city = street.id_city
                                 WHERE counter.id_flat is not null"""
-           
         if self.id_kpu!='-1':
             self.sql_query_where = " AND kpu.id_kpu = " + str(self.id_kpu)
             self.tableWidget_pu.horizontalHeader().hideSection(1)
@@ -333,12 +330,11 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
                 self.sql_query_where = self.sql_query_where + " AND counter.working_capacity = 'TRUE'"
             if self.checkBox_false.isChecked() and not (self.checkBox_true.isChecked()):
                 self.sql_query_where = self.sql_query_where + " AND counter.working_capacity = 'FALSE'"
-        self.sql_query = self.sql_query + self.sql_query_where
-        self.sql_query = self.sql_query + """ UNION
-                            SELECT
+        self.sql_query = self.sql_query + self.sql_query_where + " ORDER BY city.city_name DESC, street.street_name DESC, cast(substring(house.house_number from \'^[0-9]+\') as integer) DESC, cast(entrance.num_entr as integer) DESC, flat.num_flat DESC, counter.type_counter DESC"       
+        self.sql_query2 = """SELECT
                                 counter.id_klemma, city.city_name,
                                 street.street_name, house.house_number,
-                                entrance.num_entr, flat.flatfloor, flat.num_flat,
+                                entrance.num_entr, null, null,
                                 case counter.type_counter
                                 when 1 then 'ГВС'
                                 when 2 then 'ХВС'
@@ -353,8 +349,6 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
                                 cnt.counter
                                 inner join public.entrance
                                 on entrance.id_entr = counter.id_entr
-                                left join public.flat
-                                on flat.id_flat = counter.id_flat
                                 left join cnt.kpu
                                 on counter.id_kpu=kpu.id_kpu
                                 left join cnt.marka
@@ -366,13 +360,13 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
                                 left join public.city
                                 on city.id_city = street.id_city
                             WHERE counter.id_flat is null"""
-        self.sql_query = self.sql_query + self.sql_query_where                    
-        #self.sql_query = self.sql_query + " ORDER BY city.city_name, street.street_name, cast(substring(house.house_number from \'^[0-9]+\') as integer), cast(entrance.num_entr as integer), flat.num_flat, counter.type_counter DESC"     
-        self.sql_query = self.sql_query + " ORDER BY 2 DESC, 3 DESC, 4 DESC, 5 DESC, 7 DESC, 8 DESC" 
-        print(self.sql_query)
+        self.sql_query2 = self.sql_query2 + self.sql_query_where + " ORDER BY city.city_name DESC, street.street_name DESC, cast(substring(house.house_number from \'^[0-9]+\') as integer) DESC, cast(entrance.num_entr as integer) DESC, counter.type_counter DESC"     
         cur = self.conn.cursor()
-        cur.execute(self.sql_query)       
-        data = cur.fetchall()
+        cur.execute(self.sql_query)
+        data1 = cur.fetchall()
+        cur.execute(self.sql_query2)
+        data2 = cur.fetchall()
+        data = data2+data1
         cur.close() 
         for index,row in enumerate(data):
             self.tableWidget_pu.insertRow(0)
@@ -436,8 +430,6 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
         self.lineEdit_coefons.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
         self.lineEdit_coef.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
         self.lineEdit_floorAdd.setValidator(QRegExpValidator(QRegExp("[0-9][0-9]")))
-        # self.lineEdit_pok.setValidator(QRegExpValidator(QRegExp("[0-9]{1,5}[\\.]{1,1}[0-9]{1,4}")))
-        # self.lineEdit_imp.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
         self.dateEdit_dateInstall.setDate(datetime.date.today())
         self.dateTimeEdit_date.setDateTime(datetime.datetime.today().replace(minute=0, second=0))
         self.filtr()
@@ -460,17 +452,26 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
             self.lineEdit_coefons.hide() 
 
     def verify(self): #Доработать ошибки
+        self.lineEdit_serial.setStyleSheet('background : #FFFFFF;')
+        self.lineEdit_serKpu.setStyleSheet('background : #FFFFFF;')
+        self.lineEdit_klemma.setStyleSheet('background : #FFFFFF;')
+        #self.lineEdit_serKpu.setStyleSheet('background : #FFFFFF;')
         try:
             self.text='Введено некорректное значение'
             if self.lineEdit_serial.text()=='' and self.lineEdit_serKpu.text() == '': 
                 self.text='Введите серийный номер счетчика или КПУ'
-                raise ValueError
+                self.lineEdit_serial.setStyleSheet('background : #FDDDE6;')
+                self.lineEdit_serKpu.setStyleSheet('background : #FDDDE6;')
+                raise 
             if self.lineEdit_serial.text()=='' and self.lineEdit_klemma.text() == '': 
                 self.text='Введите серийный номер счетчика или номер клеммы'
-                raise ValueError    
+                self.lineEdit_serial.setStyleSheet('background : #FDDDE6;')
+                self.lineEdit_klemma.setStyleSheet('background : #FDDDE6;')
+                raise     
             if self.comboBox_house.currentText() =='' and self.lineEdit_flat.text() !='':
                 self.text='Укажите номер дома'
-                raise ValueError
+                #self.comboBox_house.setStyleSheet('background : #FDDDE6;')
+                raise 
             self.val_serKpu = str(self.lineEdit_serKpu.text())
             self.val_serKpu = None if self.val_serKpu == '' else int(self.val_serKpu)
             self.val_house = str(self.comboBox_house.currentText())
@@ -496,53 +497,44 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
             self.val_id_marka = int(self.list_id_marka[self.comboBox_marka.currentIndex()])
             if self.val_id_marka == 0: self.val_id_marka = None
             self.val_date = self.dateEdit_dateInstall.date().toString("yyyy-MM-dd")
-            self.box_type = int(self.checkBox_type.isChecked())
+            self.box_type = self.checkBox_type.isChecked()
             self.box_work = self.checkBox.isChecked()
-            numberFlat = -1
-            if self.val_flat != None:
-                numberFlat = self.findFlat()
-                if numberFlat == 0:
-                    print('fF',numberFlat)
-                    self.add_flat()
-            else: self.val_id_flat = None        
-            if self.val_serKpu != None:
-                self.findKpu()
+            if self.val_flat != None: self.findFlat()    
+            else: self.val_id_flat = None
+            if self.val_serKpu != None: self.findKpu()
             else: self.val_id_kpu = None
-            if self.checkBox.isChecked():
+            if self.box_work:
                 if self.val_serKpu == None:
                     self.text = 'Введите серийный номер КПУ'
-                    raise ValueError
-                if self.val_flat == None:   
+                    raise  
+                if self.val_flat == None and not self.box_type:   
                     self.text = 'Введите номер квартиры'
-                    raise ValueError
+                    raise     
+                if self.val_id_entr == None and self.box_type:   
+                    self.text = 'Введите номер подъезда'
+                    raise 
                 if self.val_type == None:
                     self.text = 'Введите тип счетчика'
-                    raise ValueError
+                    raise 
                 if self.val_coef == None:
                     self.text = 'Введите коэффициент'
-                    raise ValueError 
-            if numberFlat == 1:
-                print('fF',numberFlat)
-                self.resize(800,300)
+                    raise 
                 self.insert_pu()
-                if not self.box_work: self.close()
                 if self.val_klemma == None: self.close()
+                self.resize(800,300)
                 self.widget.setEnabled(False)
                 self.widget_stZn.show()
                 self.label_error.hide()
-            elif numberFlat == -1: 
-                print('fF',numberFlat)
+            else:
                 self.insert_pu()
                 self.close()
-        except ValueError:         
+        except:         
             pal = self.label_error.palette()
             pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
             self.label_error.setPalette(pal)
             #self.resize(self.label_error.sizeHint())    
             self.label_error.setText(self.text)        
             self.label_error.show() 
-        except psycopg2.Error as err:       
-            print("Error: ", err)
     
     def add_flat(self):
         self.resize(700,300)
@@ -550,8 +542,9 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
         self.widget_addFlat.show()
         self.label_error.hide()
         self.label_2.setText(str(self.val_flat) + ' квартиры нету в базе данных, хотите добавить?')
-        val_entr=self.comboBox_entr.currentText()
-        if val_entr == '': val_entr='1'
+        #val_entr=self.comboBox_entr.currentText()
+        if self.val_entr == '': val_entr = '1'
+        else: val_entr = self.val_entr
         self.comboBox_entrAdd.setCurrentText(val_entr)
         self.comboBox_entrAdd.model().item(0).setEnabled(False)        
     
@@ -575,7 +568,10 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
         cur.close()
         self.cansel()
      
-    def insert_pu(self): #переделать поиск нового оборудования
+    def insert_pu(self):
+        if not self.box_type: 
+            self.val_id_entr = None
+            self.val_id_house = None
         cur = self.conn.cursor()
         sql_query = """INSERT INTO cnt.counter(klemma, id_kpu, id_entr, id_flat, 
                         id_marka, coefficient, serial_number, working_capacity, 
@@ -603,9 +599,8 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
         flat_query  = flat_query + " AND flat.num_flat = " + str(self.val_flat)
         cur.execute(flat_query)   
         self.list_id_flat = cur.fetchall()
-        if len(self.list_id_flat)>0: self.val_id_flat = self.list_id_flat[0][0]
-        else: self.val_id_flat = None
-        return len(self.list_id_flat)
+        if len(self.list_id_flat)==0: self.add_flat()
+        else: self.val_id_flat = self.list_id_flat[0][0]
         
     def findKpu(self):
         cur = self.conn.cursor()
@@ -778,32 +773,66 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
         self.conn = conn
         self.id_pu = id_pu
         self.widget_puNew.hide()
+        self.widget_addFlat.hide()
         self.label_error.hide()
         self.resize(550,350)
         self.setWindowTitle('Изменить информацию о ПУ')
-        #self.pushButton_kpu.clicked.connect(self.open_kpu)
-        #self.pushButton_save.clicked.connect(self.verify)
-        #self.pushButton_replace.clicked.connect(self.replace)
-        #self.pushButton_replaceNew.clicked.connect(self.verify)
-        #self.pushButton_canselNew.clicked.connect(self.verify)
-        #self.pushButton_addStart.clicked.connect(self.add_start)
-        #self.pushButton_showVal.clicked.connect(self.verify)
+        self.pushButton_save.clicked.connect(self.save)
+        self.pushButton_replace.clicked.connect(self.show_replace)
+        self.pushButton_replaceNew.clicked.connect(self.replace_counter)
+        self.pushButton_canselNew.clicked.connect(self.canselNew)
+        self.pushButton_cansel.clicked.connect(self.cansel)
+        self.pushButton_addFlat.clicked.connect(self.insert_flat)
+        self.pushButton_addStart.clicked.connect(self.insert_start_value)
+        self.pushButton_showVal.clicked.connect(self.show_value)
         self.lineEdit_serKpu.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
         self.lineEdit_flat.setValidator(QRegExpValidator(QRegExp("[1-9][0-9]{,3}")))
         self.lineEdit_klemma.setValidator(QRegExpValidator(QRegExp("[1-9][0-9]")))
         self.lineEdit_coefons.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
         self.lineEdit_coef.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
+        self.lineEdit_klemmaNew.setValidator(QRegExpValidator(QRegExp("[1-9][0-9]")))
+        self.lineEdit_coefonsNew.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
+        self.lineEdit_coefNew.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
+        self.lineEdit_floorAdd.setValidator(QRegExpValidator(QRegExp("[0-9][0-9]")))
         self.dateEdit_dateInstall.setDate(datetime.date.today())
         self.dateTimeEdit_dateNew.setDateTime(datetime.datetime.today().replace(minute=0, second=0))
-        print('0')
+        self.dateTimeEdit_date.setDateTime(datetime.datetime.today().replace(minute=0, second=0))
+        self.dateTimeEdit_start.setDateTime(datetime.datetime.today().replace(minute=0, second=0) - timedelta(days=3))
+        self.dateTimeEdit_end.setDateTime(datetime.datetime.today().replace(minute=0, second=0))
         self.select()
-        print('1')
         self.filtr()
         self.filling()
+        self.select_start_value()
+        self.select_history()
+        self.show_value()
         self.show()
+        
+        # msg = QMessageBox()
+        # #msg.setIcon(QMessageBox.Information)
+        # msg.setWindowTitle("Предупреждение")
+        # msg.setText("Privet")
+        # #msg.setInformativeText("InformativeText")
+        # #msg.setDetailedText("DetailedText")
+          
+        # okButton = msg.addButton('Окей', QMessageBox.AcceptRole)
+        # msg.addButton('Отмена', QMessageBox.RejectRole)
+        
+        # # result = msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        # # retval = msg.exec_()
+        # # if retval == QMessageBox.Ok:
+            # # print("Yes")
+        # # else:
+            # # print("No")
+        
+        # msg.exec()
+        # if msg.clickedButton() == okButton:
+            # print("Yes")
+        # else:
+            # print("No")
+
+
     
     def filling(self):
-        pass
         self.comboBox_city.setCurrentText(self.city_name)
         self.comboBox_street.setCurrentText(self.street_name)
         self.comboBox_house.setCurrentText(self.house_number)
@@ -821,25 +850,17 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
         self.lineEdit_coef.setText('' if self.coefficient==None else str(self.coefficient))
         self.lineEdit_coefons.setText('' if self.consumption_coeff==None else str(self.consumption_coeff))
         self.comboBox_marka.setCurrentText(self.marka)
-        if self.date_install == None: 
-            self.dateEdit_install.hide()
-            self.label_install.hide()
+        if self.num_entr != None: self.checkBox_type.setChecked(True)
+        self.date_min = datetime.date(1752, 9, 14)
+        self.date_max = datetime.date(9999, 12, 31)
+        if self.date_install == None: self.dateEdit_install.setDate(self.date_min)
         else: self.dateEdit_install.setDate(self.date_install)
-        if self.date_deinstall == None: 
-            self.dateEdit_deinstall.hide()
-            self.label_deinstall.hide()
+        if self.date_deinstall == None: self.dateEdit_deinstall.setDate(self.date_max)
         else: self.dateEdit_deinstall.setDate(self.date_deinstall)
         self.label.setText('id_klemma = ' + self.id_pu)
         
     def select(self):
         cur = self.conn.cursor()
-        self.sql_query_flat = """SELECT  			 			
-                          counter.id_flat
-                        FROM
-                          cnt.counter
-                        WHERE counter.id_klemma = %s"""
-        cur.execute(self.sql_query_flat, (self.id_pu, ))
-        flat = cur.fetchall()
         self.sql_query = """SELECT  			 			
                           counter.consumption_coeff, city.city_name,
                           street.street_name, house.house_number,
@@ -856,35 +877,57 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                           counter.date_deinstall, counter.working_capacity,
                           counter.last_date
                         FROM
-                          cnt.counter"""
-        if flat[0][0] == None:
-            print('none')
-            self.sql_query = self.sql_query + """
-                          left join public.entrance
-                            on entrance.id_entr = counter.id_entr"""
-        else:
-            print('yes')
-            self.sql_query = self.sql_query + """
+                          cnt.counter
                           left join public.flat
                             on flat.id_flat = counter.id_flat
                           left join public.entrance
-                            on entrance.id_entr = flat.id_entr  """
-        self.sql_query = self.sql_query + """                    
-                          inner join cnt.kpu
+                            on entrance.id_entr = flat.id_entr     
+                          left join cnt.kpu
                             on counter.id_kpu=kpu.id_kpu
-                          inner join cnt.marka
+                          left join cnt.marka
                             on counter.id_marka = marka.id_marka
-                          inner join public.house
+                          left join public.house
                             on house.id_house = entrance.id_house
-                          inner join public.street
+                          left join public.street
                             on street.id_street = house.id_street
-                          inner join public.city
+                          left join public.city
                             on city.id_city = street.id_city
-                        WHERE counter.id_klemma = %s"""
-        print(self.sql_query)
-        cur.execute(self.sql_query, (self.id_pu, ))
+                        WHERE counter.id_klemma = %s 
+                        AND counter.id_flat is not null
+                        UNION
+                        SELECT  			 			
+                          counter.consumption_coeff, city.city_name,
+                          street.street_name, house.house_number,
+                          entrance.num_entr, null, null,
+                          case counter.type_counter 		
+                            when 1 then 'ГВС'
+                            when 2 then 'ХВС'
+                            when 3 then 'Т'
+                            when 4 then 'Э' 
+                          end AS Тип, counter.serial_number,		
+                          kpu.ser_num, kpu.type_kpu, counter.klemma,			
+                          marka.name_marka, counter.coefficient, 
+                          counter.last_pok, counter.date_install,
+                          counter.date_deinstall, counter.working_capacity,
+                          counter.last_date
+                        FROM
+                          cnt.counter
+                          left join public.entrance
+                            on entrance.id_entr = counter.id_entr     
+                          left join cnt.kpu
+                            on counter.id_kpu=kpu.id_kpu
+                          left join cnt.marka
+                            on counter.id_marka = marka.id_marka
+                          left join public.house
+                            on house.id_house = entrance.id_house
+                          left join public.street
+                            on street.id_street = house.id_street
+                          left join public.city
+                            on city.id_city = street.id_city
+                        WHERE counter.id_klemma = %s
+                        AND counter.id_flat is null"""              
+        cur.execute(self.sql_query, (self.id_pu, self.id_pu))
         data = cur.fetchall()
-        print('000')
         cur.close()
         self.consumption_coeff = data[0][0]
         self.city_name = data[0][1]
@@ -905,41 +948,67 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
         self.date_deinstall = data[0][16]
         self.workability = data[0][17]
         self.last_date = data[0][18]
- 
-    def open_kpu(self):
-        self.kpu = kpu.Kpu(self.conn, self.id_entr)
-        self.close()
-        
-    def save(self):
-        self.close()
 
-    def verify(self): #Доработать ошибки
+    def save(self):
         try:
-            text='Введено некорректное значение'   
-            if self.comboBox_house.currentText()=='' and self.comboBox_serKpu.currentText()=='': 
-                text='Введите номер дома или серийный номер КПУ'
-                raise ValueError
-            if self.comboBox_flat.currentText()=='' and self.comboBox_serKpu.currentText()=='': 
-                text='Введите номер квартиры или серийный номер КПУ'
-                raise ValueError    
+            text='Введено некорректное значение'  
             self.val_serKpu = str(self.lineEdit_serKpu.text())
             self.val_serKpu = None if self.val_serKpu == '' else int(self.val_serKpu)
-            
-            self.val_adress = int(self.spinBox_adress.value())
-            #self.val_id_entr = int(self.list_id_entrance[self.comboBox_entrance.currentIndex()])
-            self.val_type = int(self.comboBox_type.currentText())
-            self.val_serial = str(self.lineEdit_serial.text())
-            self.val_serial = None if self.val_serial == '' else int(self.val_serial)
+            if self.comboBox_house.currentText() != '':
+                self.val_id_house = int(self.list_id_house[self.comboBox_house.currentIndex()])
+            else: self.val_id_house = None 
+            self.val_entr = str(self.comboBox_entr.currentText())
+            if self.val_entr != '':
+                self.val_id_entr = int(self.list_id_entrance[self.comboBox_entr.currentIndex()])
+            else: self.val_id_entr = None
             self.val_floor = str(self.lineEdit_floor.text())
             self.val_floor = None if self.val_floor == '' else int(self.val_floor)
-            self.val_note = self.textEdit_note.toPlainText()
-            if self.val_note == '': self.val_note = None
-            self.val_work = int(self.checkBox.isChecked())
-            if self.id_kpu=='-1' and not self.flagInsert:
-                self.insert()
-            if self.id_kpu!='-1' or self.flagInsert:
+            self.val_flat = str(self.lineEdit_flat.text())
+            self.val_flat = None if self.val_flat == '' else int(self.val_flat)
+            self.val_type = int(self.comboBox_type.currentIndex())
+            if self.val_type == 0: self.val_type = None
+            self.val_klemma = str(self.lineEdit_klemma.text())
+            self.val_klemma = None if self.val_klemma == '' else int(self.val_klemma)
+            self.val_serial = str(self.lineEdit_serial.text())
+            if self.val_serial == '': self.val_serial = None
+            self.val_coef = str(self.lineEdit_coef.text())
+            self.val_coef = None if self.val_coef == '' else int(self.val_coef)
+            self.val_coefons = str(self.lineEdit_coefons.text())
+            self.val_coefons = 1 if self.val_coefons == '' else int(self.val_coefons)
+            self.val_id_marka = int(self.list_id_marka[self.comboBox_marka.currentIndex()])
+            if self.val_id_marka == 0: self.val_id_marka = None
+            self.val_date_install = self.dateEdit_install.date()
+            if self.val_date_install == self.date_min: self.val_date_install = None
+            else: self.val_date_install = self.dateEdit_install.date().toString("yyyy-MM-dd")
+            self.val_date_deinstal = self.dateEdit_deinstall.date()
+            if self.val_date_deinstal == self.date_max: self.val_date_deinstal = None
+            else: self.val_date_deinstal = self.dateEdit_deinstall.date().toString("yyyy-MM-dd")
+            self.box_type = int(self.checkBox_type.isChecked())
+            self.box_work = self.checkBox.isChecked()
+            if self.val_flat != None: self.findFlat()
+            else: self.val_id_flat = None
+            if self.val_serKpu != None: self.findKpu()
+            else: self.val_id_kpu = None
+            if self.box_work:
+                if self.val_serKpu == None:
+                    self.text = 'Введите серийный номер КПУ'
+                    raise 
+                if self.val_flat == None and not self.box_type:   
+                    self.text = 'Введите номер квартиры'
+                    raise 
+                if self.val_id_entr == None and self.box_type:   
+                    self.text = 'Введите номер подъезда'
+                    raise 
+                if self.val_type == None:
+                    self.text = 'Введите тип счетчика'
+                    raise 
+                if self.val_coef == None:
+                    self.text = 'Введите коэффициент'
+                    raise
                 self.update()
-        except ValueError:         
+            else:
+                self.update()
+        except :         
                 pal = self.label_error.palette()
                 pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
                 self.label_error.setPalette(pal)
@@ -949,35 +1018,44 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
 
     def insert(self):
         cur = self.conn.cursor()
-        sql_query = """INSERT INTO cnt.kpu(adress, id_entr, type_kpu, ser_num, 
-                                            floor, note, workability)                                                                                             
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-        cur.execute(sql_query, (self.val_adress, self.val_id_entr, self.val_type, self.val_serial, self.val_floor, self.val_note, self.val_work))                
+        sql_query = """INSERT INTO cnt.counter(klemma, id_kpu, id_entr, id_flat, 
+                        id_marka, coefficient, serial_number, working_capacity, 
+                        date_install, id_house, type_counter, consumption_coeff)                                                                                             
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id_klemma;"""
+        cur.execute(sql_query, (self.val_klemma, self.val_id_kpu, self.val_id_entr, self.val_id_flat, 
+                    self.val_id_marka, self.val_coef, self.val_serial, self.box_work,
+                    self.val_date, self.val_id_house, self.val_type, self.val_coefons)) 
         #self.conn.commit()
-        cur.close() 
-        self.flagInsert = True
-        self.tabWidget.setTabEnabled(1,True)
-        self.tabWidget.setCurrentIndex(1)
-        self.close()
+        data = cur.fetchall()
+        cur.close()
+        self.id_klemma=data[0][0]
+        self.label.setText('id_klemma = ' + str(self.id_klemma))
+        print('insert pu')
 
     def update(self):
+        self.label_error.hide()
         cur = self.conn.cursor()
-        sql_query = """ UPDATE cnt.kpu
-                        SET adress=%s, id_entr=%s, type_kpu=%s, ser_num=%s, floor=%s, note=%s, workability=%s 
-                        WHERE id_kpu=%s"""
-        cur.execute(sql_query, (self.val_adress, self.val_id_entr, self.val_type, self.val_serial, self.val_floor, self.val_note, self.val_work, self.id_kpu))               
+        sql_query = """ UPDATE cnt.counter
+                        SET klemma=%s, id_kpu=%s, id_entr=%s, id_flat=%s, id_marka=%s, 
+                        coefficient=%s, serial_number=%s, working_capacity=%s, date_install=%s, 
+                        date_deinstall=%s, id_house=%s, type_counter=%s, consumption_coeff=%s
+                        WHERE id_klemma=%s"""
+        cur.execute(sql_query, (self.val_klemma, self.val_id_kpu, self.val_id_entr, self.val_id_flat, 
+            self.val_id_marka, self.val_coef, self.val_serial, self.box_work, self.val_date_install, 
+            self.val_date_deinstal, self.val_id_house, self.val_type, self.val_coefons, self.id_pu))               
         #self.conn.commit()
         cur.close()
-        if self.flagInsert:
-            self.tabWidget.setCurrentIndex(1)
-        self.close()
-
-    def add_start(self):
-        self.close()
-        
-    def replace(self):
-        pass
-        
+        #self.close()
+        text = 'Данные успешно сохранены'
+        pal = self.label_error.palette()
+        pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("green"))
+        self.label_error.setPalette(pal)
+        #self.resize(self.label_error.sizeHint())    
+        self.label_error.setText(text)        
+        self.label_error.show()
+        self.select()
+        self.filling()
+       
     def filtr(self):
             self.filtr_city()
             self.comboBox_city.currentIndexChanged.connect(self.filtr_street)
@@ -1057,9 +1135,13 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
         
     def filtr_entrance(self):
         self.comboBox_entr.clear()        
-        self.comboBox_entr.id = [] 
+        self.comboBox_entr.id = []
+        self.comboBox_entrAdd.clear()        
+        self.comboBox_entrAdd.id = []        
+        
         self.list_id_entrance = [0]
         self.comboBox_entr.addItem('')
+        self.comboBox_entrAdd.addItem('')
         cur = self.conn.cursor()
         entrance_query = """SELECT
                             entrance.num_entr,	
@@ -1072,6 +1154,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
         for index,row in enumerate(data):
             self.list_id_entrance.append(data[index][1])        
             self.comboBox_entr.addItem(str(data[index][0]))
+            self.comboBox_entrAdd.addItem(str(data[index][0]))
         cur.close()
         
     def filtr_marka(self):
@@ -1097,5 +1180,264 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
             self.comboBox_marka.addItem(str(data[index][0])) 
             self.comboBox_markaNew.addItem(str(data[index][0]))
         cur.close()
-            
+    
+    def select_start_value(self):
+        start_value_query ="""SELECT date_val, st_value, impulse_value
+                                FROM cnt.start_value"""
+        start_value_query = start_value_query + " WHERE id_klemma = " + str(self.id_pu)
+        cur = self.conn.cursor()
+        cur.execute(start_value_query) 
+        data = cur.fetchall()
+        cur.close() 
+        self.tableWidget_stZn.setRowCount(0)
+        for index,row in enumerate(data):
+            self.tableWidget_stZn.insertRow(0)
+            for k in range(len(row)):
+                    item = QTableWidgetItem('' if data[index][k]==None else str(data[index][k]))                 
+                    self.tableWidget_stZn.setItem(0,k,item)
+        self.tableWidget_stZn.resizeColumnsToContents()
+                    
+    def insert_start_value(self):
+        self.date_val = self.dateTimeEdit_date.dateTime().toString("yyyy-MM-dd hh:mm:00")
+        self.st_value = self.doubleSpinBox_val.value()
+        self.impulse_value = self.spinBox_imp.value()
+        cur = self.conn.cursor()
+        sql_query = """INSERT INTO cnt.start_value(id_klemma, date_val, st_value, impulse_value)                                                                                             
+                    VALUES (%s, %s, %s, %s)"""
+        cur.execute(sql_query, (self.id_pu, self.date_val, self.st_value, self.impulse_value)) 
+        #self.conn.commit()
+        cur.close()
+        self.select_start_value()
+    
+    def select_history(self):
+        self.tableWidget_history.setRowCount(0)       
+        self.sql_query = """SELECT city.city_name, street.street_name,
+                                   house.house_number, entrance.num_entr,
+                                   flat.num_flat, kpu.ser_num,
+                                   counter_history.klemma, counter_history.working_capacity,
+                                   counter_history.date_change, counter_history.date_deinstall,
+                                   counter_history.note
+                            FROM
+                              cnt.counter
+                              inner join cnt.counter_history
+                                on counter_history.id_klemma = counter.id_klemma
+                              inner join cnt.kpu
+                                on kpu.id_kpu = counter_history.id_kpu
+                              inner join public.flat
+                                on flat.id_flat = counter_history.id_flat
+                              left join public.entrance
+                                on entrance.id_entr = flat.id_entr
+                              left join public.house
+                                on house.id_house = entrance.id_house
+                              left join public.street
+                                on street.id_street = house.id_street
+                              left join public.city
+                                on city.id_city = street.id_city
+                            WHERE counter.id_klemma = %s AND counter.id_flat is not null
+                            UNION
+                            SELECT city.city_name, street.street_name,
+                                   house.house_number, entrance.num_entr,
+                                   null, kpu.ser_num,
+                                   counter_history.klemma, counter_history.working_capacity,
+                                   counter_history.date_change, counter_history.date_deinstall,
+                                   counter_history.note
+                            FROM
+                              cnt.counter
+                              inner join cnt.counter_history
+                                on counter_history.id_klemma = counter.id_klemma
+                              inner join cnt.kpu
+                                on kpu.id_kpu = counter_history.id_kpu
+                              left join public.entrance
+                                on entrance.id_entr = counter_history.id_entr
+                              left join public.house
+                                on house.id_house = counter_history.id_house
+                              left join public.street
+                                on street.id_street = house.id_street
+                              left join public.city
+                                on city.id_city = street.id_city
+                            WHERE counter.id_klemma = %s AND counter.id_flat is null"""
+        cur = self.conn.cursor()
+        cur.execute(self.sql_query, (self.id_pu,self.id_pu))   
+        data = cur.fetchall()
+        for index,row in enumerate(data):
+            self.tableWidget_history.insertRow(0)
+            for k in range(len(row)):
+                    item = QTableWidgetItem('' if data[index][k]==None else str(data[index][k]))                 
+                    self.tableWidget_history.setItem(0,k,item)                 
+        cur.close()    
+        self.tableWidget_history.resizeColumnsToContents()
+    
+    def show_value(self):
+        date_start = self.dateTimeEdit_start.dateTime().toString("yyyy-MM-dd hh:mm:00")
+        date_end = self.dateTimeEdit_end.dateTime().toString("yyyy-MM-dd hh:mm:00")
+        date_value_query ="""SELECT value_zn, date_val, impulse_value, calculate_error, empty, line_state
+                                FROM cnt.date_value"""
+        date_value_query = date_value_query + " WHERE id_klemma = " + str(self.id_pu) + " AND date_val > '" + date_start + "' AND date_val < '" + date_end + "';"
+        cur = self.conn.cursor()
+        cur.execute(date_value_query) 
+        data = cur.fetchall()
+        cur.close() 
+        self.tableWidget_dateVal.setRowCount(0)
+        for index,row in enumerate(data):
+            self.tableWidget_dateVal.insertRow(0)
+            for k in range(len(row)):
+                    item = QTableWidgetItem('' if data[index][k]==None else str(data[index][k]))                 
+                    self.tableWidget_dateVal.setItem(0,k,item)
+        self.tableWidget_dateVal.resizeColumnsToContents()
+     
+    def show_replace(self):
+        self.resize(900,350)
+        self.widget_puNew.show()
+        self.label_errorNew.hide()
+        self.tabWidget.setCurrentIndex(2)
+        self.pushButton_save.setEnabled(False)
+        self.pushButton_replace.setEnabled(False)
+        self.pushButton_addStart.setEnabled(False)
+        self.lineEdit_klemmaNew.setText('' if self.klemma==None else str(self.klemma))
+        self.lineEdit_coefNew.setText('' if self.coefficient==None else str(self.coefficient))
+        self.lineEdit_coefonsNew.setText('' if self.consumption_coeff==None else str(self.consumption_coeff))
+        self.comboBox_markaNew.setCurrentText(self.marka)
+        self.checkBox.setChecked(False)
+        self.spinBox_impNew.setValue(float(self.tableWidget_dateVal.item(0,2).text()))
+    
+    def replace_counter(self):
+        try:
+            text='Введено некорректное значение'  
+            self.val_klemmaNew = str(self.lineEdit_klemmaNew.text())
+            self.val_klemmaNew = None if self.val_klemmaNew == '' else int(self.val_klemmaNew)
+            self.val_serialNew = str(self.lineEdit_serialNew.text())
+            if self.val_serialNew == '': self.val_serialNew = None
+            self.val_coefNew = str(self.lineEdit_coefNew.text())
+            self.val_coefNew = None if self.val_coefNew == '' else int(self.val_coefNew)
+            self.val_coefonsNew = str(self.lineEdit_coefonsNew.text())
+            self.val_coefonsNew = 1 if self.val_coefonsNew == '' else int(self.val_coefonsNew)
+            self.val_id_markaNew = int(self.list_id_marka[self.comboBox_markaNew.currentIndex()])
+            if self.val_id_markaNew == 0: self.val_id_markaNew = None
+            if self.dateEdit_install.date() == self.date_min: self.val_date_installNew = None
+            else: self.val_date_installNew = self.dateEdit_install.date().toString("yyyy-MM-dd")
+            self.val_noteNew = str(self.textEdit_noteNew.text())
+            self.box_workNew = self.checkBoxNew.isChecked()
+            if self.box_work:
+                if self.val_serialNew == None:
+                    self.text = 'Введите серийный номер ПУ'
+                    raise 
+                if self.val_coef == None:
+                    self.text = 'Введите коэффициент'
+                    raise
+                find_counter()
+                update_replace()  
+                
+            else:
+                update_replace()
+                self.insert()
+        except Warning:
+            QMessageBox.warning(self, 'Внимание', 'Введено некорректное значение')
+        except :         
+                pal = self.label_error.palette()
+                pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
+                self.label_error.setPalette(pal)
+                #self.resize(self.label_error.sizeHint())    
+                self.label_error.setText(text)        
+                self.label_error.show()
+    
+    def find_counter(self):
+        cur = self.conn.cursor()
+        counter_query = """SELECT
+                            counter.id_klemma, counter.workability
+                        FROM
+                            cnt.counter"""
+        counter_query  = counter_query + " WHERE counter.serial_number = " + str(self.val_serialNew)
+        cur.execute(counter_query)   
+        self.list_counter = cur.fetchall()
+        if len(self.list_counter)==0: self.add_flat()
+        else: self.val_id_flat = self.list_id_flat[0][0]
+    
+    def update_replace(self):
+        self.label_error.hide()
+        cur = self.conn.cursor()
+        sql_query = """ UPDATE cnt.counter
+                        SET working_capacity=%s, date_deinstall=%s
+                        WHERE id_klemma=%s"""
+        cur.execute(sql_query, (False, self.val_date_installNew, self.id_pu))               
+        #self.conn.commit()
+        cur.close()
         
+    def canselNew(self):
+        self.resize(550,350)
+        self.widget_puNew.hide()
+        self.label_error.hide()
+        self.pushButton_save.setEnabled(True)
+        self.pushButton_replace.setEnabled(True)
+        self.pushButton_addStart.setEnabled(True)
+        self.checkBox.setChecked(self.workability)
+    
+    def findFlat(self):
+        cur = self.conn.cursor()
+        flat_query = """SELECT
+                            flat.id_flat
+                        FROM
+                            public.flat
+                        left join public.entrance
+                            on flat.id_entr = entrance.id_entr"""
+        flat_query  = flat_query + " WHERE entrance.id_house = " + str(self.val_id_house) + " AND flat.num_flat = " + str(self.val_flat)
+        cur.execute(flat_query)   
+        self.list_id_flat = cur.fetchall()
+        if len(self.list_id_flat)==0: self.add_flat()
+        else: self.val_id_flat = self.list_id_flat[0][0]
+    
+    def add_flat(self):
+        self.resize(800,350)
+        self.pushButton_save.setEnabled(False)
+        self.pushButton_replace.setEnabled(False)
+        self.pushButton_addStart.setEnabled(False)
+        self.widget_addFlat.show()
+        self.label_error.hide()
+        self.label_2.setText(str(self.val_flat) + ' квартиры нету в базе данных, хотите добавить?')
+        if self.val_entr == '': val_entr = '1'
+        else: val_entr = self.val_entr
+        self.comboBox_entrAdd.setCurrentText(val_entr)
+        self.comboBox_entrAdd.model().item(0).setEnabled(False) 
+    
+    def cansel(self):
+        self.resize(550,350)
+        self.pushButton_save.setEnabled(True)
+        self.pushButton_replace.setEnabled(True)
+        self.pushButton_addStart.setEnabled(True)
+        self.widget_addFlat.hide()
+        self.label_error.hide()
+        
+    def insert_flat(self):
+        self.val_id_entr = int(self.list_id_entrance[self.comboBox_entrAdd.currentIndex()])
+        self.val_comment = self.lineEdit_noteAdd.text()
+        if self.val_comment == '': self.val_comment = None
+        self.val_flatfloor = self.lineEdit_floorAdd.text()
+        self.val_flatfloor = None if self.val_flatfloor == '' else int(self.val_flatfloor)
+        cur = self.conn.cursor()
+        sql_query = """INSERT INTO public.flat(id_entr, num_flat, fio, flatfloor)                                                                                             
+                    VALUES (%s, %s, %s, %s)"""
+        cur.execute(sql_query, (self.val_id_entr, self.val_flat, self.val_comment, self.val_flatfloor)) 
+        #self.conn.commit()
+        cur.close()
+        self.cansel() 
+
+    def findKpu(self):
+        cur = self.conn.cursor()
+        kpu_query = """SELECT
+                            kpu.id_kpu
+                        FROM
+                            cnt.kpu
+                        inner join public.flat
+                            on flat.id_entr = kpu.id_entr"""
+        kpu_query  = kpu_query + " WHERE kpu.ser_num = " + str(self.val_serKpu)
+        if self.val_id_flat != None:
+            kpu_query  = kpu_query + " AND flat.id_flat = " + str(self.val_id_flat)
+        elif self.val_id_entr != None:
+            kpu_query  = kpu_query + " AND kpu.id_entr = " + str(self.val_id_entr)  
+        cur.execute(kpu_query)
+        self.list_id_kpu = cur.fetchall()
+        if len(self.list_id_kpu) == 0: 
+            self.text = 'В БД отсутсвует КПУ с данным серийным номером'
+            if self.val_flat != None or self.val_entr != '':
+                self.text = 'На заданном адресе не установлен данный КПУ'
+            raise
+        self.val_id_kpu = self.list_id_kpu[0][0]
