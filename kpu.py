@@ -369,7 +369,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
                         SET adress=%s, id_entr=%s, type_kpu=%s, ser_num=%s, floor=%s, note=%s, workability=%s 
                         WHERE id_kpu=%s"""
         cur.execute(sql_query, (self.val_adress, self.val_id_entr, self.val_type, self.val_serial, self.val_floor, self.val_note, self.val_work, self.id_kpu))               
-        #self.conn.commit()
+        self.conn.commit()
         cur.close()
         self.close()
 
@@ -379,7 +379,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
                                             floor, note, workability)                                                                                             
                     VALUES (%s, %s, %s, %s, %s, %s, %s)"""
         cur.execute(sql_query, (self.val_adress, self.val_id_entr, self.val_type, self.val_serial, self.val_floor, self.val_note, self.val_work))                
-        #self.conn.commit()
+        self.conn.commit()
         cur.close()                
         self.close()
    
@@ -484,7 +484,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
                             SET id_entr=%s, workability=%s 
                             WHERE id_kpu=%s"""
             cur.execute(sql_query, (6, 0, self.id_kpu))          
-            #self.conn.commit()
+            self.conn.commit()
             cur.close()
             cur = self.conn.cursor()
             sql_query = """ SELECT kpu.id_kpu, counter.id_klemma
@@ -502,7 +502,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
                                 SET id_entr=%s, workability=%s 
                                 WHERE id_kpu=%s"""
                 cur.execute(sql_query, (self.id_entr, self.val_workNew, self.id_kpuNew))          
-                #self.conn.commit()
+                self.conn.commit()
                 cur.close()
                 if self.checkBox_st_zn.isChecked():
                     self.start_value()                 
@@ -512,7 +512,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
                                                     floor, note, workability)                                                                                             
                             VALUES (%s, %s, %s, %s, %s, %s, %s)"""
                 cur.execute(sql_query, (self.adress, self.id_entr, self.val_typeNew, self.val_serialNew, self.floor, self.val_noteNew, self.val_workNew))                
-                #self.conn.commit()
+                self.conn.commit()
                 cur.close()
                 if self.checkBox_st_zn.isChecked():
                     self.start_value()                    
@@ -523,7 +523,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
             sql_query = """INSERT INTO cnt.kpu_replace(id_old_kpu, id_new_kpu, date_replace)                                                                                             
                            VALUES (%s,(SELECT kpu.id_kpu FROM cnt.kpu WHERE kpu.ser_num=%s),%s)"""
             cur.execute(sql_query, (self.id_kpu, self.val_serialNew, self.date_val))                
-            #self.conn.commit()
+            self.conn.commit()
             cur.close()           
             self.close()
         except ValueError:
@@ -541,7 +541,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
             sql_query = """INSERT INTO cnt.start_value(id_klemma,date_val,st_value,impulse_value)
                            VALUES (%s,%s,%s,0)"""
             cur.execute(sql_query, (self.data_pu[index][4], self.date_val, float(self.st_value)))                 
-            #self.conn.commit()
+            self.conn.commit()
         cur.close()
                    
     def select_date(self):

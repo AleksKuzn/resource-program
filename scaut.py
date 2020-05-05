@@ -264,7 +264,7 @@ class Add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
                        SET id_house=%s, num_entr=%s, ip_rassbery=%s, port_rassbery=%s, login_user=%s, pwd_user=%s                                                                                             
                        WHERE id_entr=%s"""
         cur.execute(sql_query, (self.val_id_house, self.val_entr, self.val_host, self.val_port, self.val_login, self.val_pasw, self.id_entr))               
-        #self.conn.commit()
+        self.conn.commit()
         cur.close()
         self.close()
         
@@ -273,7 +273,7 @@ class Add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
         sql_query = """INSERT INTO public.entrance(id_house, num_entr, ip_rassbery, port_rassbery, login_user, pwd_user)                                                                                             
                        VALUES (%s, %s, %s, %s, %s, %s)"""
         cur.execute(sql_query, (self.val_id_house, self.val_entr, self.val_host, self.val_port, self.val_login, self.val_pasw))                
-        #self.conn.commit()
+        self.conn.commit()
         cur.close()                
         self.close()
        
