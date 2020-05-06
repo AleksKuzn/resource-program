@@ -11,7 +11,7 @@ class Pu(QtWidgets.QWidget, PU_ui.Ui_Form):
     def __init__(self, conn, id_kpu):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle('ПУ')
+        self.setWindowTitle('Приборы Учета')
         self.id_kpu=id_kpu
         self.conn = conn
         self.pushButton_add.clicked.connect(self.add_window)
@@ -807,11 +807,9 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
             self.lineEdit_coefonsNew.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
             self.lineEdit_coefNew.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
             self.lineEdit_floorAdd.setValidator(QRegExpValidator(QRegExp("[0-9][0-9]")))
-            self.dateEdit_dateInstall.setDate(datetime.date.today())
-            self.dateTimeEdit_dateNew.setDateTime(datetime.datetime.today().replace(minute=0, second=0))
-            self.dateTimeEdit_date.setDateTime(datetime.datetime.today().replace(minute=0, second=0))
-            self.dateTimeEdit_start.setDateTime(datetime.datetime.today().replace(minute=0, second=0) - timedelta(days=3))
-            self.dateTimeEdit_end.setDateTime(datetime.datetime.today().replace(minute=0, second=0))
+            self.pushButton_install.clicked.connect(self.select_date_install)
+            self.pushButton_deinstall.clicked.connect(self.select_date_deinstall)
+            self.pushButton_select_impulse.clicked.connect(self.select_impulse) 
             self.id_pu = id_pu
             self.select()
             self.filtr()
@@ -820,15 +818,6 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
             self.select_history()
             self.show_value()
             self.show()
-            
-            # msg = QMessageBox()
-            # msg.setIcon(QMessageBox.Information)
-            # msg.setWindowTitle("Внимание")
-            #msg.setInformativeText("InformativeText")
-            #msg.setDetailedText("DetailedText")
-              
-            # okButton = msg.addButton('Окей', QMessageBox.AcceptRole)
-            # msg.addButton('Отмена', QMessageBox.RejectRole)
         except :
             print (traceback.format_exc())
 
@@ -854,12 +843,29 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
         self.comboBox_marka.setCurrentText(self.marka)
         if self.id_entr == None: self.checkBox_type.setChecked(False)
         else: self.checkBox_type.setChecked(True)
-        self.date_min = datetime.date(1752, 9, 14)
-        self.date_max = datetime.date(9999, 12, 31)
-        if self.date_install == None: self.dateEdit_install.setDate(self.date_min)
-        else: self.dateEdit_install.setDate(self.date_install)
-        if self.date_deinstall == None: self.dateEdit_deinstall.setDate(self.date_max)
-        else: self.dateEdit_deinstall.setDate(self.date_deinstall)
+        if self.date_install == None: 
+            self.pushButton_install.show()
+            self.dateEdit_install.hide()
+            self.label_install.hide()
+        else: 
+            self.pushButton_install.hide()
+            self.dateEdit_install.show()
+            self.label_install.show()
+            self.dateEdit_install.setDate(self.date_install)
+        if self.date_deinstall == None: 
+            self.pushButton_deinstall.show()
+            self.dateEdit_deinstall.hide()
+            self.label_deinstall.hide()
+        else: 
+            self.pushButton_deinstall.hide()
+            self.dateEdit_deinstall.show()
+            self.label_deinstall.show()
+            self.dateEdit_deinstall.setDate(self.date_deinstall)
+        self.dateTimeEdit_dateNew.setDateTime(datetime.datetime.today().replace(minute=0, second=0))
+        self.dateEdit_dateInstall.setDate(datetime.date.today())
+        self.dateTimeEdit_date.setDateTime(datetime.datetime.today().replace(minute=0, second=0))
+        self.dateTimeEdit_start.setDateTime(datetime.datetime.today().replace(minute=0, second=0) - timedelta(days=3))
+        self.dateTimeEdit_end.setDateTime(datetime.datetime.today().replace(minute=0, second=0))
         self.label.setText('id_klemma = ' + str(self.id_pu))
         
     def select(self):
@@ -985,12 +991,10 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
             self.val_coefons = 1 if self.val_coefons == '' else int(self.val_coefons)
             self.val_id_marka = int(self.list_id_marka[self.comboBox_marka.currentIndex()])
             if self.val_id_marka == 0: self.val_id_marka = None
-            self.val_date_install = self.dateEdit_install.date()
-            if self.val_date_install == self.date_min: self.val_date_install = None
-            else: self.val_date_install = self.dateEdit_install.date().toString("yyyy-MM-dd")
-            self.val_date_deinstal = self.dateEdit_deinstall.date()
-            if self.val_date_deinstal == self.date_max: self.val_date_deinstal = None
-            else: self.val_date_deinstal = self.dateEdit_deinstall.date().toString("yyyy-MM-dd")
+            self.val_date_install = self.dateEdit_install.date().toString("yyyy-MM-dd")
+            if self.val_date_install == '14.09.1752': self.val_date_install = None
+            self.val_date_deinstal = self.dateEdit_deinstall.date().toString("yyyy-MM-dd")
+            if self.val_date_deinstal == '31.12.9999': self.val_date_deinstal = None
             self.box_type = self.checkBox_type.isChecked()
             self.box_work = self.checkBox.isChecked()
             if self.val_flat != None: self.findFlat()
@@ -1196,8 +1200,8 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
             self.val_coefonsNew = 1 if self.val_coefonsNew == '' else int(self.val_coefonsNew)
             self.val_id_markaNew = int(self.list_id_marka[self.comboBox_markaNew.currentIndex()])
             if self.val_id_markaNew == 0: self.val_id_markaNew = None
-            if self.dateEdit_install.date() == self.date_min: self.val_date_installNew = None
-            else: self.val_date_installNew = self.dateEdit_install.date().toString("yyyy-MM-dd")
+            self.val_date_installNew = self.dateEdit_dateInstall.date().toString("yyyy-MM-dd")
+            self.date_valNew = self.dateTimeEdit_dateNew.dateTime().toString("yyyy-MM-dd hh:mm:00")
             self.val_noteNew = str(self.textEdit_noteNew.toPlainText())
             self.box_workNew = self.checkBoxNew.isChecked()
             self.val_serialNew = str(self.lineEdit_serialNew.text())
@@ -1226,7 +1230,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                         self.update_replace()
                         self.insert_counter_replace()
                                 # Как добавить примечание в counter_history?
-                        self.date_val = self.val_date_installNew
+                        self.date_val = self.date_valNew
                         self.st_value = self.doubleSpinBox_valNew.value()
                         self.impulse_value = self.spinBox_impNew.value()
                         self.insert_start_value()
@@ -1249,7 +1253,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                     self.insert_counter()
                     self.insert_counter_replace()
                                 # Как добавить примечание в counter_history?
-                    self.date_val = self.val_date_installNew
+                    self.date_val = self.date_valNew
                     self.st_value = self.doubleSpinBox_valNew.value()
                     self.impulse_value = self.spinBox_impNew.value()
                     self.insert_start_value()
@@ -1535,3 +1539,31 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
             self.comboBox_markaNew.addItem(str(data[index][0]))
         cur.close()
         
+    def select_date_install(self):
+        self.pushButton_install.hide()
+        self.dateEdit_install.show()
+        self.label_install.show()
+        self.dateEdit_install.setDate(datetime.date.today())
+
+    def select_date_deinstall(self):
+        self.pushButton_deinstall.hide()
+        self.dateEdit_deinstall.show()
+        self.label_deinstall.show()
+        self.dateEdit_deinstall.setDate(datetime.date.today()) 
+    
+    def select_impulse(self):
+        self.label_errorNew.hide()
+        date_value_query ="""SELECT impulse_value
+                                FROM cnt.date_value"""
+        date_value_query = date_value_query + " WHERE id_klemma = " + str(self.id_counter) + " AND date_val = '" + self.dateTimeEdit_dateNew.dateTime().toString("yyyy-MM-dd hh:mm:00") +"'"
+        cur = self.conn.cursor()
+        cur.execute(date_value_query) 
+        data = cur.fetchall()
+        cur.close()
+        if len(data)==0:
+            pal = self.label_errorNew.palette()
+            pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
+            self.label_errorNew.setPalette(pal)   
+            self.label_errorNew.setText('Отсутствуют данные на выбранную дату')        
+            self.label_errorNew.show()
+        else: self.spinBox_impNew.setValue(data[0][0])

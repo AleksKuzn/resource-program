@@ -18,7 +18,7 @@ def create_connection(db_name, db_user, db_password, db_host, db_port):
                 host=db_host,
                 port=db_port,
             )
-            print("Connection to the PostgreSQL DB successful")
+            print("Connection to the PostgreSQL DB successful.\ndb_name = ",db_name,"\ndb_user = ",db_user,"\ndb_password = ",db_password,"\ndb_host = ",db_host,"\ndb_port = ",db_port)
         except OperationalError as e:
             print(f"The error '{e}' occurred")
         return connection    
@@ -29,11 +29,18 @@ class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
         super().__init__(parent)
         self.setupUi(self)
         self.center()        
-        self.setWindowTitle('main')
+        self.setWindowTitle('Главное меню')
         self.action_scaut.triggered.connect(self.open_scaut)
         self.action_kpu.triggered.connect(self.open_kpu)
         self.action_pu.triggered.connect(self.open_pu)
         self.action_quit.triggered.connect(self.close)
+        self.action_lineState.triggered.connect(self.select_line_state)
+        self.tableWidget_replaceKPU.show()
+        self.tableWidget_replacePU.show()
+        self.label_replaceKPU.show()
+        self.label_replacePU.show()
+        self.tableWidget_lineState.hide()
+        self.label_lineState.hide()
         self.select_kpu()
         self.select_pu()
         self.show()
@@ -93,6 +100,74 @@ class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
         cur.close()    
         self.tableWidget_replacePU.resizeColumnsToContents()
 
+    def select_line_state(self):
+        self.tableWidget_replaceKPU.hide()
+        self.tableWidget_replacePU.hide()
+        self.label_replaceKPU.hide()
+        self.label_replacePU.hide()
+        self.tableWidget_lineState.show()
+        self.label_lineState.show()
+        self.tableWidget_lineState.setRowCount(0)       
+        sql_query = """ SELECT  
+                          city.city_name, street.street_name,
+                          house.house_number,
+                          entrance.num_entr,		 	
+                          flat.flatfloor,		 	
+                          flat.num_flat,		 	
+                          kpu.ser_num,
+                          counter.klemma,				
+                          counter.serial_number,
+                            case counter.type_counter 		 	
+                            when 1 then 'ГВС'
+                            when 2 then 'ХВС'
+                            when 3 then 'Т'
+                            when 4 then 'Э' 
+                          end AS Тип,
+                          marka.name_marka,
+                          date_value.value_zn,
+                          date_value.impulse_value,	
+                          date_value.line_state,	
+                          date_value.empty,  	 
+                          counter.last_date
+                          
+                        FROM
+                          cnt.counter
+                          left join public.flat
+                            on flat.id_flat = counter.id_flat
+                          left join cnt.date_value
+                            on counter.id_klemma = date_value.id_klemma
+                          left join cnt.kpu 
+                            on kpu.id_kpu = counter.id_kpu
+                          left join cnt.marka
+                            on counter.id_marka = marka.id_marka
+                          left join public.entrance
+                            on entrance.id_entr = flat.id_entr
+                          left join public.house
+                            on house.id_house = entrance.id_house
+                          left join public.street
+                            on street.id_street = house.id_street
+                          left join public.city
+                            on city.id_city = street.id_city  
+
+                          WHERE 
+                            date_value.date_val = counter.last_date
+                            and (date_value.line_state = 1								
+                            or date_value.empty = 1)								
+                            and working_capacity = 'TRUE'
+                            
+                          order by city.city_name DESC, street.street_name DESC, cast(substring(house.house_number from \'^[0-9]+\') as integer) DESC, cast(entrance.num_entr as integer) DESC, flat.num_flat DESC, date_value.date_val DESC, counter.type_counter DESC"""
+  
+        cur = conn.cursor()
+        cur.execute(sql_query)   
+        data = cur.fetchall()
+        for index,row in enumerate(data):
+            self.tableWidget_lineState.insertRow(0)
+            for k in range(len(row)):
+                    item = QTableWidgetItem('' if data[index][k]==None else str(data[index][k]))                 
+                    self.tableWidget_lineState.setItem(0,k,item)               
+        cur.close()    
+        self.tableWidget_lineState.resizeColumnsToContents()
+        
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     conn = create_connection("counters", "counters", "counters", "192.168.105.30", "5432")

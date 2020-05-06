@@ -10,7 +10,7 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
     def __init__(self, conn, id_entr):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle('КПУ')
+        self.setWindowTitle('Контроллеры Приборов Учета')
         self.id_entr=id_entr
         self.conn = conn 
         self.pushButton_add.clicked.connect(self.add_window)
@@ -248,7 +248,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
             self.comboBox_street.setCurrentText('Поленова')
             
         if self.id_kpu!='-1':
-            self.setWindowTitle('Изменить информацию о КПУ')
+            self.setWindowTitle('Информация о КПУ')
             self.pushButton_pu.show()    
             self.pushButton_replace.show()
             self.pushButton_pu.clicked.connect(self.open_pu)
@@ -535,26 +535,25 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
         
     def start_value(self):
         cur = self.conn.cursor()
-        for index,row in enumerate(self.data_pu):
-            num_klemma=self.data_pu[index][1]
+        for index,row in enumerate(data_pu):
+            num_klemma=data_pu[index][1]
             exec('self.st_value=self.lineEdit_k%s.text()' % num_klemma)
             sql_query = """INSERT INTO cnt.start_value(id_klemma,date_val,st_value,impulse_value)
                            VALUES (%s,%s,%s,0)"""
-            cur.execute(sql_query, (self.data_pu[index][4], self.date_val, float(self.st_value)))                 
+            cur.execute(sql_query, (data_pu[index][4], self.date_val, float(self.st_value)))                 
             self.conn.commit()
         cur.close()
                    
     def select_date(self):
         self.flag_selectDate=False
         date_val = self.dateTimeEdit.dateTime().toString("yyyy-MM-dd hh:00:00")
-        print(date_val)
         self.sql_query = """SELECT date_value.value_zn, counter.klemma, flat.num_flat,
                                 case counter.type_counter
                                     when 1 then 'ГВС'
                                     when 2 then 'ХВС'
                                     when 3 then 'Т'
                                     when 4 then 'Э' 
-                                end AS type, counter.id_klemma
+                                end AS type
                             FROM cnt.counter
                               inner join cnt.date_value
                                 on date_value.id_klemma = counter.id_klemma
@@ -563,11 +562,26 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
                             WHERE counter.id_kpu = %s and date_value.date_val = %s"""
         cur = self.conn.cursor()                
         cur.execute(self.sql_query, (self.id_kpu, date_val))
-        self.data_pu = cur.fetchall()
-        for index,row in enumerate(self.data_pu):
-            exec('self.lineEdit_k%s.setEnabled(True)' % self.data_pu[index][1])
-            exec('self.label_k%s.setText("№%s %s")' % (self.data_pu[index][1], self.data_pu[index][2], self.data_pu[index][3]))
-            exec('self.lineEdit_k%s.setText("%s")' % (self.data_pu[index][1], self.data_pu[index][0]))
+        data_pu = cur.fetchall()
+        if len(data_pu)==0:
+            self.sql_query = """SELECT counter.last_pok, counter.klemma, flat.num_flat,
+                                case counter.type_counter
+                                    when 1 then 'ГВС'
+                                    when 2 then 'ХВС'
+                                    when 3 then 'Т'
+                                    when 4 then 'Э' 
+                                end AS type
+                            FROM cnt.counter
+                              left join public.flat
+                                on flat.id_flat = counter.id_flat
+                            WHERE counter.id_kpu = %s"""
+            cur = self.conn.cursor()                
+            cur.execute(self.sql_query, (self.id_kpu, ))
+            data_pu = cur.fetchall()
+        for index,row in enumerate(data_pu):
+            exec('self.lineEdit_k%s.setEnabled(True)' % data_pu[index][1])
+            exec('self.label_k%s.setText("№%s %s")' % (data_pu[index][1], data_pu[index][2], data_pu[index][3]))
+            exec('self.lineEdit_k%s.setText("%s")' % (data_pu[index][1], data_pu[index][0]))
 
     def filtr_city(self):
         self.comboBox_city.clear()
