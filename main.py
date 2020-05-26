@@ -3,6 +3,8 @@
 
 import sys
 import psycopg2
+import fdb
+import traceback
 import menu_ui, scaut, kpu, pu 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QWidget, QDesktopWidget, QApplication
@@ -18,10 +20,35 @@ def create_connection(db_name, db_user, db_password, db_host, db_port):
                 host=db_host,
                 port=db_port,
             )
-            print("Connection to the PostgreSQL DB successful.\ndb_name = ",db_name,"\ndb_user = ",db_user,"\ndb_password = ",db_password,"\ndb_host = ",db_host,"\ndb_port = ",db_port)
-        except OperationalError as e:
-            print(f"The error '{e}' occurred")
+            print("Connection to the PostgreSQL DB successful.\nname = ",db_name,"\nuser = ",db_user,"\npassword = ",db_password,"\nhost = ",db_host,"\nport = ",db_port)
+        # except OperationalError as e:
+            # print(f"The error '{e}' occurred")
+        except:
+            msg = QMessageBox()
+            msg.setWindowTitle("Ошибка")
+            msg.setText("Не удалось подключиться к базе данных:") 
+            msg.setInformativeText("name = "+db_name+"\nuser = "+db_user+"\npassword = "+db_password+"\nhost = "+db_host+"\nport = "+db_port)
+            msg.exec()
         return connection    
+
+def create_connection_firebird(db_host, db_name, db_user, db_password):
+        connection = None
+        try:
+            connection = fdb.connect(
+                host=db_host,
+                database=db_name,
+                user=db_user,
+                password=db_password
+            )
+            print("\nConnection to the FireBird DB successful.\nhost = ",db_host,"\nname = ",db_name,"\nuser = ",db_user,"\npassword = ",db_password)
+        except:
+            msg = QMessageBox()
+            msg.setWindowTitle("Ошибка")
+            msg.setText("Не удалось подключиться к базе данных:") 
+            msg.setInformativeText("name = "+db_name+"\nuser = "+db_user+"\npassword = "+db_password+"\nhost = "+db_host)
+            msg.exec()
+            print (traceback.format_exc())
+        return connection 
  
 class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
 
@@ -43,6 +70,7 @@ class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
         self.label_lineState.hide()
         self.select_kpu()
         self.select_pu()
+        #self.test()
         self.show()
 
     def center(self):
@@ -167,11 +195,23 @@ class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
                     self.tableWidget_lineState.setItem(0,k,item)               
         cur.close()    
         self.tableWidget_lineState.resizeColumnsToContents()
+    
+    def test(self):
+        try: 
+            sql_query = "SELECT * FROM KPU"
+            cur = fireBird.cursor()
+            cur.execute(sql_query)   
+            data = cur.fetchall()
+            print(len(data))
+        except:
+            print (traceback.format_exc())
         
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     conn = create_connection("counters", "counters", "counters", "192.168.105.30", "5432")
+    #fireBird = create_connection_firebird("p1.polenova11.obninsk.dmf", "counters", "SYSDBA", "masterkey")
     ex = Menu()
     sys.exit(app.exec_())
+    #fireBird.close()
     conn.close()
     

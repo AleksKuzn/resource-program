@@ -1,7 +1,9 @@
 import sys
 import psycopg2
+import fdb
 import datetime
-import KPU_ui, add_KPU_ui, pu   
+import traceback
+import KPU_ui, add_KPU_ui, pu, scaut   
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.Qt import *
 from datetime import timedelta 
@@ -226,82 +228,90 @@ class Kpu(QtWidgets.QWidget, KPU_ui.Ui_Form):
     
 class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
     def __init__(self, id_kpu, conn):
-        super().__init__()
-        self.setupUi(self)
-        self.widget_kpuNew.hide()
-        self.label_error.hide()
-        self.resize(500,300)
-        self.id_kpu = id_kpu 
-        self.conn = conn 
-        self.filtr_city()
-        self.filtr_type()
-        self.lineEdit_serial.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
-        self.lineEdit_floor.setValidator(QRegExpValidator(QRegExp("[0-9][0-9]")))
-        self.pushButton_save.clicked.connect(self.verify) 
-        if self.id_kpu=='-1':
-            self.setWindowTitle('Добавить КПУ')
-            self.tabWidget_kpu.setTabEnabled(1,False)
-            self.tabWidget_kpu.setTabText(1,'')
-            self.pushButton_pu.hide()
-            self.pushButton_replace.hide()
-            self.comboBox_city.setCurrentText('Обнинск')
-            self.comboBox_street.setCurrentText('Поленова')
-            
-        if self.id_kpu!='-1':
-            self.setWindowTitle('Информация о КПУ')
-            self.pushButton_pu.show()    
-            self.pushButton_replace.show()
+        try:
+            super().__init__()
+            self.setupUi(self)
+            self.widget_kpuNew.hide()
+            self.label_error.hide()
+            self.resize(500,300)
+            self.id_kpu = id_kpu 
+            self.conn = conn 
+            self.filtr_city()
+            self.filtr_type()
+            self.lineEdit_serial.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
+            self.lineEdit_floor.setValidator(QRegExpValidator(QRegExp("[0-9][0-9]")))
+            self.pushButton_save.clicked.connect(self.verify) 
             self.pushButton_pu.clicked.connect(self.open_pu)
             self.pushButton_replace.clicked.connect(self.show_replace)
-            self.select_history()
-            cur = self.conn.cursor()
-            self.sql_query = """SELECT
-                              city.city_name, street.street_name,
-                              house.house_number, entrance.num_entr,
-                              kpu.ser_num, kpu.adress,
-                              kpu.type_kpu, kpu.floor,
-                              kpu.note, kpu.workability, kpu.id_entr	                            
-                            FROM
-                              cnt.kpu
-                              left join public.entrance
-                                on entrance.id_entr = kpu.id_entr
-                              left join public.house
-                                on house.id_house = entrance.id_house
-                              left join public.street
-                                on street.id_street = house.id_street
-                              left join public.city
-                                on city.id_city = street.id_city
-                            WHERE kpu.id_kpu = %s"""
-            cur.execute(self.sql_query, (self.id_kpu, ))
-            data = cur.fetchall()
-            self.city_name = data[0][0]
-            self.street_name = data[0][1]
-            self.house_number = data[0][2]
-            self.num_entr = data[0][3]
-            self.ser_num = data[0][4]
-            self.adress = data[0][5]
-            self.type_kpu = data[0][6]
-            self.floor = data[0][7]
-            self.note = data[0][8]
-            self.workability = data[0][9]
-            self.id_entr = data[0][10]
-            self.comboBox_city.setCurrentText(self.city_name)
-            self.comboBox_city.model().item(0).setEnabled(False)
-            self.comboBox_street.setCurrentText(self.street_name)
-            self.comboBox_street.model().item(0).setEnabled(False)
-            self.comboBox_house.setCurrentText(self.house_number)
-            self.comboBox_house.model().item(0).setEnabled(False)
-            self.comboBox_entrance.setCurrentText(str(self.num_entr))
-            self.comboBox_entrance.model().item(0).setEnabled(False)
-            self.lineEdit_floor.setText('' if self.floor==None else str(self.floor))
-            self.lineEdit_serial.setText('' if self.ser_num==None else str(self.ser_num))
-            self.spinBox_adress.setValue(self.adress)
-            self.comboBox_type.setCurrentText(str(self.type_kpu))
-            self.textEdit_note.setText(self.note)
-            self.checkBox.setChecked(self.workability)
-            self.label.setText('id_kpu = ' + self.id_kpu)
-            cur.close()
-        self.show()
+            if self.id_kpu=='-1':
+                self.setWindowTitle('Добавить КПУ')
+                self.tabWidget_kpu.setTabEnabled(1,False)
+                self.tabWidget_kpu.setTabText(1,'')
+                self.pushButton_pu.hide()
+                self.pushButton_replace.hide()
+                self.comboBox_city.setCurrentText('Обнинск')
+                
+            if self.id_kpu!='-1':
+                self.setWindowTitle('Информация о КПУ')
+                self.pushButton_pu.show()    
+                self.pushButton_replace.show()
+                self.select_history()
+                self.select()
+                self.filling()
+            self.show()
+        except:
+            print (traceback.format_exc())
+    
+    def select(self):
+        sql_query = """SELECT
+                          city.city_name, street.street_name,
+                          house.house_number, entrance.num_entr,
+                          kpu.ser_num, kpu.adress,
+                          kpu.type_kpu, kpu.floor,
+                          kpu.note, kpu.workability, kpu.id_entr	                            
+                        FROM
+                          cnt.kpu
+                          left join public.entrance
+                            on entrance.id_entr = kpu.id_entr
+                          left join public.house
+                            on house.id_house = entrance.id_house
+                          left join public.street
+                            on street.id_street = house.id_street
+                          left join public.city
+                            on city.id_city = street.id_city
+                        WHERE kpu.id_kpu = %s"""
+        cur = self.conn.cursor()
+        cur.execute(sql_query, (self.id_kpu, ))
+        data = cur.fetchall()
+        cur.close()
+        self.city_name = data[0][0]
+        self.street_name = data[0][1]
+        self.house_number = data[0][2]
+        self.num_entr = data[0][3]
+        self.ser_num = data[0][4]
+        self.adress = data[0][5]
+        self.type_kpu = data[0][6]
+        self.floor = data[0][7]
+        self.note = data[0][8]
+        self.workability = data[0][9]
+        self.id_entr = data[0][10]
+    
+    def filling(self):
+        self.comboBox_city.setCurrentText(self.city_name)
+        self.comboBox_city.model().item(0).setEnabled(False)
+        self.comboBox_street.setCurrentText(self.street_name)
+        self.comboBox_street.model().item(0).setEnabled(False)
+        self.comboBox_house.setCurrentText(self.house_number)
+        self.comboBox_house.model().item(0).setEnabled(False)
+        self.comboBox_entrance.setCurrentText(str(self.num_entr))
+        self.comboBox_entrance.model().item(0).setEnabled(False)
+        self.lineEdit_floor.setText('' if self.floor==None else str(self.floor))
+        self.lineEdit_serial.setText('' if self.ser_num==None else str(self.ser_num))
+        self.spinBox_adress.setValue(self.adress)
+        self.comboBox_type.setCurrentText(str(self.type_kpu))
+        self.textEdit_note.setText(self.note)
+        self.checkBox.setChecked(self.workability)
+        self.label.setText('id_kpu = ' + str(self.id_kpu))
     
     def select_history(self):
         self.tableWidget_history.setRowCount(0)       
@@ -334,8 +344,8 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
                     self.tableWidget_history.setItem(0,k,item)                 
         cur.close()    
         self.tableWidget_history.resizeColumnsToContents()
-    
-    def verify(self): #Доработать ошибки
+  
+    def verify(self):
         try:
             text='Введено некорректное значение'   
             if self.comboBox_entrance.currentText()=='': 
@@ -351,42 +361,101 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
             self.val_note = self.textEdit_note.toPlainText()
             if self.val_note == '': self.val_note = None
             self.val_work = int(self.checkBox.isChecked())
+            self.label_error.hide()
             if self.id_kpu=='-1':
-                self.insert()
-            if self.id_kpu!='-1':
-                self.update()
+                if self.val_work==1:
+                    self.select_parameters_firebird()
+                    self.create_connection_firebird()
+                else: self.insert()
+            elif self.id_kpu!='-1':
+                if int(self.workability)!=self.val_work or (self.val_work==1 and (self.id_entr!=self.val_id_entr or self.val_adress!=self.adress or self.val_type!=self.type_kpu or self.val_serial!=self.ser_num)):
+                    self.select_parameters_firebird()
+                    self.create_connection_firebird()
+                else: self.update()
+            self.select()    
         except ValueError:         
                 pal = self.label_error.palette()
                 pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
                 self.label_error.setPalette(pal)
                 #self.resize(self.label_error.sizeHint())    
                 self.label_error.setText(text)        
-                self.label_error.show()     
-    
+                self.label_error.show()
+
     def update(self):
-        cur = self.conn.cursor()
-        sql_query = """ UPDATE cnt.kpu
-                        SET adress=%s, id_entr=%s, type_kpu=%s, ser_num=%s, floor=%s, note=%s, workability=%s 
-                        WHERE id_kpu=%s"""
-        cur.execute(sql_query, (self.val_adress, self.val_id_entr, self.val_type, self.val_serial, self.val_floor, self.val_note, self.val_work, self.id_kpu))               
-        self.conn.commit()
-        cur.close()
-        self.close()
+        try:
+            cur = self.conn.cursor()
+            sql_query = """ UPDATE cnt.kpu
+                            SET adress=%s, id_entr=%s, type_kpu=%s, ser_num=%s, floor=%s, note=%s, workability=%s 
+                            WHERE id_kpu=%s"""
+            cur.execute(sql_query, (self.val_adress, self.val_id_entr, self.val_type, self.val_serial, self.val_floor, self.val_note, self.val_work, self.id_kpu))               
+            #self.conn.commit()  
+            pal = self.label_error.palette()
+            pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("green"))
+            self.label_error.setPalette(pal)
+            self.label_error.setText('Данные успешно сохранены')
+            self.label_error.show()    
+        except:
+            print (traceback.format_exc())
 
     def insert(self):
-        cur = self.conn.cursor()
-        sql_query = """INSERT INTO cnt.kpu(adress, id_entr, type_kpu, ser_num, 
-                                            floor, note, workability)                                                                                             
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-        cur.execute(sql_query, (self.val_adress, self.val_id_entr, self.val_type, self.val_serial, self.val_floor, self.val_note, self.val_work))                
-        self.conn.commit()
-        cur.close()                
-        self.close()
-   
+        try:
+            cur = self.conn.cursor()
+            sql_query = """INSERT INTO cnt.kpu(adress, id_entr, type_kpu, ser_num,
+                                                floor, note, workability)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id_kpu;"""
+            cur.execute(sql_query, (self.val_adress, self.val_id_entr, self.val_type, self.val_serial, self.val_floor, self.val_note, self.val_work))
+            #self.conn.commit()
+            data = cur.fetchall()
+            self.id_kpu = data[0][0]
+            cur.close()
+            QMessageBox.information(self, 'Информация', 'КПУ успешно добавлен')
+            self.label.setText('id_kpu = ' + str(self.id_kpu))
+            self.setWindowTitle('Информация о КПУ')
+            self.pushButton_pu.show()    
+            self.pushButton_replace.show()
+            self.tabWidget_kpu.setTabEnabled(1,True)
+            self.tabWidget_kpu.setTabText(1,'История редактирования')
+        except:
+            print (traceback.format_exc())
+
+    def insert_fdb(self,fireBird):
+        try:
+            sql_query = """ INSERT INTO KPU(ADRESS, TYPE_KPU, SERIAL_NUM)
+                            VALUES (?, ?, ?) """
+            cur = fireBird.cursor()
+            cur.execute(sql_query, (self.val_adress, self.val_type, self.val_serial))
+            #self.conn.commit()
+            cur.close()
+        except:
+            print (traceback.format_exc())
+
+    def update_fdb(self,fireBird):
+        try:
+            sql_query = """ UPDATE KPU
+                            SET ADRESS=?, TYPE_KPU=?, SERIAL_NUM=?
+                            WHERE ADRESS=? AND TYPE_KPU=?"""
+            cur = fireBird.cursor()
+            cur.execute(sql_query, (self.val_adress, self.val_type, self.val_serial, self.val_adress, self.val_type))
+            #self.conn.commit()
+            cur.close()
+        except:
+            print (traceback.format_exc())
+
+    def deleted_fdb(self,fireBird):
+        try:
+            sql_query = """ DELETE FROM KPU
+                            WHERE ADRESS=? AND TYPE_KPU=?"""
+            cur = fireBird.cursor()
+            cur.execute(sql_query, (self.val_adress_del, self.val_type_del)) 
+            #self.conn.commit()
+            cur.close() 
+        except:
+            print (traceback.format_exc())
+
     def open_pu(self):
         self.pu = pu.Pu(self.conn, self.id_kpu)
         self.close()
-    
+
     def show_replace(self):
         #self.center()
         self.resize(900,300)
@@ -423,7 +492,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
         self.pushButton_replaceNew.clicked.connect(self.replace_kpu)
         self.pushButton_selectDate.clicked.connect(self.select_date)
         self.comboBox_typeNew.currentIndexChanged.connect(self.change_type)
-    
+
     def change_type(self):
         #self.doubleSpinBox_k8.setDecimals(3)
         if self.comboBox_typeNew.currentText() == '3':
@@ -439,7 +508,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
                 exec('self.label_k%s.hide()' % x)
                 exec('self.lineEdit_k%s.setEnabled(False)' % x)
                 x+=1
-    
+
     def processing_klemma(self):
         self.change_type()
         x=1
@@ -456,14 +525,14 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
         else: 
             self.widget_st_zn.hide()   
             self.pushButton_selectDate.hide()
-     
+
     def cansel(self):    
         self.resize(500,300)
         self.widget_kpuNew.hide()
         self.setWindowTitle('Изменить информацию о КПУ')
         self.tabWidget_kpu.setEnabled(True)
         self.checkBox.setChecked(self.workability)
-    
+
     def replace_kpu(self):
         try:
             text='Введено некорректное значение'
@@ -532,7 +601,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
                 self.label_errorNew.setPalette(pal)  
                 self.label_errorNew.setText(text)        
                 self.label_errorNew.show()     
-        
+
     def start_value(self):
         cur = self.conn.cursor()
         for index,row in enumerate(data_pu):
@@ -543,7 +612,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
             cur.execute(sql_query, (data_pu[index][4], self.date_val, float(self.st_value)))                 
             self.conn.commit()
         cur.close()
-                   
+
     def select_date(self):
         self.flag_selectDate=False
         date_val = self.dateTimeEdit.dateTime().toString("yyyy-MM-dd hh:00:00")
@@ -603,7 +672,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
         cur.close()
         self.filtr_street()
         self.comboBox_city.currentIndexChanged.connect(self.filtr_street)      
-        
+
     def filtr_street(self):     
         self.comboBox_street.clear()        
         self.comboBox_street.id = []        
@@ -624,7 +693,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
         cur.close()      
         self.filtr_house()
         self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
-        
+
     def filtr_house(self):    
         self.comboBox_house.clear()        
         self.comboBox_house.id = []        
@@ -645,7 +714,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
         cur.close()
         self.filtr_entrance()
         self.comboBox_house.currentIndexChanged.connect(self.filtr_entrance)
-    
+
     def filtr_entrance(self):
         self.comboBox_entrance.clear() 
         self.comboBox_entrance.id = []        
@@ -664,7 +733,7 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
             self.list_id_entrace.append(data[index][1])        
             self.comboBox_entrance.addItem(str(data[index][0]))        
         cur.close()
-    
+
     def filtr_type(self):
         self.comboBox_type.clear()
         self.comboBox_typeNew.clear()
@@ -681,3 +750,66 @@ class Add_Kpu(QtWidgets.QWidget, add_KPU_ui.Ui_Form):
             self.comboBox_type.addItem(str(data[index][0]))
             self.comboBox_typeNew.addItem(str(data[index][0]))
         cur.close()
+
+    def create_connection_firebird(self):
+        try:
+            connection = None
+            connection = fdb.connect(
+                host=self.ip_rassbery,
+                database=self.fdb_path,
+                user=self.fdb_login,
+                password=self.fdb_password
+            )
+            print("\nConnection to the FireBird DB successful.\nhost = ",self.ip_rassbery,"\nname = ",self.fdb_path,"\nuser = ",self.fdb_login,"\npassword = ",self.fdb_password)
+            if self.id_kpu=='-1':
+                self.insert_fdb(connection)
+            if self.id_kpu!='-1':
+                if self.workability==True and self.val_work==0:
+                    self.val_adress_del = self.val_adress
+                    self.val_type_del = self.val_type
+                    self.deleted_fdb(connection)
+                elif self.workability==False and self.val_work==1: 
+                    self.insert_fdb(connection)
+                elif self.id_entr!=self.val_id_entr:
+                    self.val_adress_del = self.adress
+                    self.val_type_del = self.type_kpu
+                    self.deleted_fdb(connection)
+                    self.insert_fdb(connection)    
+                else:
+                    self.update_fdb(connection)
+            connection.close()
+            if self.id_kpu=='-1':
+                self.insert()
+            if self.id_kpu!='-1':
+                self.update()
+        except:
+            msg = QMessageBox()
+            msg.setWindowTitle("Ошибка")
+            msg.setText("Не удалось подключиться к локальной базе данных.")
+            msg.setInformativeText("Хотите отредактировать данные СКАУТ или продолжить без добавления КПУ в базу данных FireBird?")
+            msg.setDetailedText("host = "+str(self.ip_rassbery)+"\nname = "+str(self.fdb_path)+"\nuser = "+str(self.fdb_login)+"\npassword = "+str(self.fdb_password))
+            scautButton = msg.addButton('СКАУТ', QMessageBox.AcceptRole)
+            continueButton = msg.addButton('Продолжить', QMessageBox.RejectRole)
+            msg.exec()
+            if msg.clickedButton() == scautButton:
+                self.add_scaut = scaut.Add_Scaut(self.val_id_entr,self.conn)
+            if msg.clickedButton() == continueButton:
+                self.val_work==0
+                if self.id_kpu=='-1':
+                    self.insert()
+                if self.id_kpu!='-1':
+                    self.update()
+            print (traceback.format_exc())
+
+    def select_parameters_firebird(self):
+        sql_query = """SELECT ip_rassbery, fdb_login, fdb_password, fdb_path
+                       FROM save.login_data
+                       WHERE id_entr = %s"""
+        cur = self.conn.cursor()
+        cur.execute(sql_query, (self.val_id_entr, ))
+        data = cur.fetchall()
+        cur.close()
+        self.ip_rassbery = data[0][0]
+        self.fdb_login = data[0][1]
+        self.fdb_password = data[0][2]
+        self.fdb_path = data[0][3]

@@ -1,5 +1,6 @@
 import sys
 import psycopg2
+import traceback
 import scaut_ui, add_scaut_ui, kpu
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import  QTableWidgetItem
@@ -169,113 +170,172 @@ class Scaut(QtWidgets.QWidget, scaut_ui.Ui_Form):
 
 class Add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
     def __init__(self, id_scaut, conn):
-        super().__init__()
-        self.setupUi(self)
-        self.id_scaut = id_scaut 
-        self.label_error.hide()
-        self.conn = conn 
-        self.filtr_city()
-        self.comboBox_city.currentIndexChanged.connect(self.filtr_street)
-        self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
-        self.lineEdit_port.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
-        self.pushButton_save.clicked.connect(self.verify)
-        if self.id_scaut=='-1':
-            self.setWindowTitle('Добавить СКАУТ')
-            self.pushButton_kpu.hide()
-            self.comboBox_city.setCurrentText('Обнинск')
-            self.comboBox_street.setCurrentText('Поленова')
-        if self.id_scaut!='-1':      
-            self.setWindowTitle('Информация о  СКАУТ')
-            self.pushButton_kpu.show()
+        try:
+            super().__init__()
+            self.setupUi(self)
+            self.id_scaut = id_scaut 
+            self.label_error.hide()
+            self.conn = conn 
+            self.filtr_city()
+            self.comboBox_city.currentIndexChanged.connect(self.filtr_street)
+            self.comboBox_street.currentIndexChanged.connect(self.filtr_house)
+            self.lineEdit_port.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
+            self.lineEdit_name.setValidator(QRegExpValidator(QRegExp("[0-9]*")))
+            self.pushButton_save.clicked.connect(self.verify)
             self.pushButton_kpu.clicked.connect(self.open_kpu)
-            cur = self.conn.cursor()
-            self.sql_query = """SELECT
-                                    city.city_name,	
-                                    street.street_name,
-                                    house.house_number,
-                                    entrance.num_entr,
-                                    entrance.login_user,
-                                    entrance.pwd_user,   
-                                    entrance.ip_rassbery,
-                                    entrance.port_rassbery,
-                                    entrance.id_entr                                                                                             
-                                FROM
-                                    public.entrance
-                                left join public.house
-                                    on house.id_house = entrance.id_house
-                                left join public.street
-                                    on street.id_street = house.id_street
-                                left join public.city
-                                    on city.id_city = street.id_city
-                                WHERE entrance.id_entr = %s"""
-            cur.execute(self.sql_query, (self.id_scaut, )) 
-            data = cur.fetchall()
-            self.comboBox_city.setCurrentText(data[0][0])
-            self.comboBox_city.model().item(0).setEnabled(False)
-            self.comboBox_street.setCurrentText(data[0][1])
-            self.comboBox_street.model().item(0).setEnabled(False)
-            self.comboBox_house.setCurrentText(data[0][2])
-            self.comboBox_house.model().item(0).setEnabled(False) 
-            self.spinBox_entr.setValue(data[0][3])
-            self.lineEdit_login.setText(data[0][4])
-            self.lineEdit_pasw.setText(data[0][5])
-            self.lineEdit_host.setText(data[0][6])
-            val_port=data[0][7]
-            val_port= '' if val_port==None else str(val_port)
-            self.lineEdit_port.setText(val_port)
-            self.id_entr = data[0][8]
-            self.label.setText('id_entr = '+str(data[0][8]))
-            cur.close() 
-        self.show()
+            if self.id_scaut=='-1':
+                self.setWindowTitle('Добавить СКАУТ')
+                self.pushButton_kpu.hide()
+                self.comboBox_city.setCurrentText('Обнинск')
+            if self.id_scaut!='-1':      
+                self.setWindowTitle('Информация о  СКАУТ')
+                self.pushButton_kpu.show()
+                self.select()
+                self.filling()
+            self.show()
+        except :
+            print (traceback.format_exc())
+            
+    def select(self):
+        sql_query = """SELECT
+                                city.city_name,	
+                                street.street_name,
+                                house.house_number,
+                                entrance.num_entr,
+                                login_data.login_user,
+                                login_data.pwd_user,   
+                                login_data.ip_rassbery,
+                                login_data.port_rassbery,
+                                entrance.id_entr,
+                                login_data.fdb_login,
+                                login_data.fdb_password,
+                                login_data.fdb_path,
+                                login_data.version_fdb
+                            FROM
+                                save.login_data, public.entrance
+                            left join public.house
+                                on house.id_house = entrance.id_house
+                            left join public.street
+                                on street.id_street = house.id_street
+                            left join public.city
+                                on city.id_city = street.id_city
+                            WHERE entrance.id_entr = %s and login_data.id_entr = %s"""
+        cur = self.conn.cursor()
+        cur.execute(sql_query, (self.id_scaut, self.id_scaut)) 
+        data = cur.fetchall()
+        cur.close()
+        self.city_name = data[0][0]
+        self.street_name = data[0][1]
+        self.house_number = data[0][2] 
+        self.num_entr = data[0][3]
+        self.login_user = data[0][4]
+        self.pwd_user = data[0][5]
+        self.ip_rassbery = data[0][6]
+        self.port_rassbery = data[0][7]
+        self.id_entr = data[0][8]
+        self.fdb_login = data[0][9]
+        self.fdb_password = data[0][10]
+        self.fdb_path = data[0][11]
+        self.version_fdb = data[0][12]
+    
+    def filling(self):
+        self.comboBox_city.setCurrentText(self.city_name)
+        #self.comboBox_city.model().item(0).setEnabled(False)
+        self.comboBox_street.setCurrentText(self.street_name)
+        #self.comboBox_street.model().item(0).setEnabled(False)
+        self.comboBox_house.setCurrentText(self.house_number)
+        #self.comboBox_house.model().item(0).setEnabled(False)
+        self.id_house = int(self.list_id_house[self.comboBox_house.currentIndex()])
+        self.spinBox_entr.setValue(self.num_entr)
+        self.lineEdit_login.setText(self.login_user)
+        self.lineEdit_pasw.setText(self.pwd_user)
+        self.lineEdit_host.setText(self.ip_rassbery)
+        self.lineEdit_port.setText('' if self.port_rassbery==None else str(self.port_rassbery))
+        self.label.setText('id_entr = '+str(self.id_entr))
+        self.lineEdit_fdbLogin.setText(self.fdb_login)
+        self.lineEdit_fdbPasw.setText(self.fdb_password)
+        self.lineEdit_fdbName.setText(self.fdb_path)
+        self.lineEdit_name.setText('' if self.version_fdb==None else str(self.version_fdb))
     
     def verify(self):
         try:
-           # QMessageBox.information(self, 'Информация', 'Введено валидное число: "{}"'.format(value))
             text='Введено некорректное значение'
-            if self.comboBox_house.currentText()=='': 
-                text='Введите номер дома'
-                raise ValueError
+            if self.comboBox_house.currentText()=='':
+                self.comboBox_house.setStyleSheet('background : #FDDDE6;')
+                flag_city = False
+            else:
+                self.comboBox_house.setStyleSheet('background : #FFFFFF;')
+                flag_city = True
+            if self.comboBox_street.currentText()=='': 
+                self.comboBox_street.setStyleSheet('background : #FDDDE6;')
+            else:
+                self.comboBox_street.setStyleSheet('background : #FFFFFF;')
+            if self.comboBox_city.currentText()=='': 
+                self.comboBox_city.setStyleSheet('background : #FDDDE6;')
+            else:
+                self.comboBox_city.setStyleSheet('background : #FFFFFF;')
             self.val_id_house = int(self.list_id_house[self.comboBox_house.currentIndex()])
-            self.val_entr = int(self.spinBox_entr.value())
-            self.val_host = str(self.lineEdit_host.text())
-            if self.val_host == '': self.val_host = None
-            self.val_port = str(self.lineEdit_port.text())
-            self.val_port = None if self.val_port == '' else int(self.val_port)
-            self.val_login = str(self.lineEdit_login.text())
-            if self.val_login == '': self.val_login = None
-            self.val_pasw = str(self.lineEdit_pasw.text())
-            if self.val_pasw == '': self.val_pasw = None
-            if self.id_scaut=='-1':
+            self.val_num_entr = int(self.spinBox_entr.value())
+            self.val_ip_rassbery = None if self.lineEdit_host.text() == '' else str(self.lineEdit_host.text())
+            self.val_port_rassbery = None if self.lineEdit_port.text() == '' else int(self.lineEdit_port.text())
+            self.val_login_user = None if self.lineEdit_login.text() == '' else str(self.lineEdit_login.text())
+            self.val_pwd_user = None if self.lineEdit_pasw.text() == '' else str(self.lineEdit_pasw.text())
+            self.val_fdb_login = None if self.lineEdit_fdbLogin.text() == '' else str(self.lineEdit_fdbLogin.text())
+            self.val_fdb_password = None if self.lineEdit_fdbPasw.text() == '' else str(self.lineEdit_fdbPasw.text())
+            self.val_fdb_path = None if self.lineEdit_fdbName.text() == '' else str(self.lineEdit_fdbName.text())
+            self.val_version_fdb = None if self.lineEdit_name.text() == '' else int(self.lineEdit_name.text())
+            if self.id_scaut=='-1' and flag_city==True:
                 self.insert()
-            if self.id_scaut!='-1':
+                QMessageBox.information(self, 'Информация', 'Оборудование успешно добавлено')
+                self.label.setText('id_entr = '+str(self.id_entr))
+                self.setWindowTitle('Информация о СКАУТ')
+                self.pushButton_kpu.show()
+            if self.id_scaut!='-1' and flag_city==True:
                 self.update()
+                pal = self.label_error.palette()
+                pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("green"))
+                self.label_error.setPalette(pal)
+                self.label_error.setText('Данные успешно сохранены')
+                self.label_error.show()
         except ValueError:                         
             pal = self.label_error.palette()
             pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor("red"))
             self.label_error.setPalette(pal)
             self.label_error.setText(text)     
             self.label_error.show() 
- #           QMessageBox.warning(self, 'Внимание', 'Введено некорректное значение')
+ #          QMessageBox.warning(self, 'Внимание', 'Введено некорректное значение')
+ #          QMessageBox.information(self, 'Информация', 'Введено валидное число: "{}"'.format(value))
     
     def update(self):
-        #Как проверить, что пользователь не удалил запись из ячейки?
         cur = self.conn.cursor()
-        sql_query = """UPDATE public.entrance
-                       SET id_house=%s, num_entr=%s, ip_rassbery=%s, port_rassbery=%s, login_user=%s, pwd_user=%s                                                                                             
-                       WHERE id_entr=%s"""
-        cur.execute(sql_query, (self.val_id_house, self.val_entr, self.val_host, self.val_port, self.val_login, self.val_pasw, self.id_entr))               
-        self.conn.commit()
+        if self.val_id_house != self.id_house or self.val_num_entr != self.num_entr:
+            sql_query = """UPDATE public.entrance
+                           SET id_house=%s, num_entr=%s                                                                                             
+                           WHERE id_entr=%s"""
+            cur.execute(sql_query, (self.val_id_house, self.val_num_entr, self.id_entr))               
+            self.conn.commit()
+        if self.val_ip_rassbery!=self.ip_rassbery or self.val_port_rassbery!=self.port_rassbery or self.val_login_user!=self.login_user or self.val_pwd_user!=self.pwd_user or self.val_fdb_login!=self.fdb_login or self.val_fdb_password!=self.fdb_password or self.val_fdb_path!=self.fdb_path or self.val_version_fdb!=self.version_fdb:
+            sql_query = """UPDATE save.login_data
+                           SET ip_rassbery=%s, port_rassbery=%s, login_user=%s, pwd_user=%s, 
+                                fdb_login=%s, fdb_password=%s, fdb_path=%s, version_fdb=%s                                                                                             
+                           WHERE id_entr=%s"""
+            cur.execute(sql_query, (self.val_ip_rassbery, self.val_port_rassbery, self.val_login_user, self.val_pwd_user, self.val_fdb_login, self.val_fdb_password, self.val_fdb_path, self.val_version_fdb, self.id_entr))               
+            self.conn.commit()
         cur.close()
-        self.close()
         
     def insert(self):
         cur = self.conn.cursor()
-        sql_query = """INSERT INTO public.entrance(id_house, num_entr, ip_rassbery, port_rassbery, login_user, pwd_user)                                                                                             
-                       VALUES (%s, %s, %s, %s, %s, %s)"""
-        cur.execute(sql_query, (self.val_id_house, self.val_entr, self.val_host, self.val_port, self.val_login, self.val_pasw))                
+        sql_query = """INSERT INTO public.entrance(id_house, num_entr)                                                                                             
+                       VALUES (%s, %s) RETURNING id_entr;"""
+        cur.execute(sql_query, (self.val_id_house, self.val_num_entr))                
         self.conn.commit()
-        cur.close()                
-        self.close()
+        data = cur.fetchall()
+        self.id_entr = data[0][0]
+        sql_query = """INSERT INTO save.login_data(id_entr, ip_rassbery, port_rassbery, login_user, pwd_user, fdb_login, fdb_password, fdb_path, version_fdb)                                                                                             
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);"""
+        cur.execute(sql_query, (self.id_entr, self.val_ip_rassbery, self.val_port_rassbery, self.val_login_user, self.val_pwd_user, self.val_fdb_login, self.val_fdb_password, self.val_fdb_path, self.val_version_fdb))                
+        #self.conn.commit()
+        cur.close()
        
     def open_kpu(self):
         self.kpu = kpu.Kpu(self.conn, self.id_entr)
@@ -291,7 +351,6 @@ class Add_Scaut(QtWidgets.QWidget, add_scaut_ui.Ui_Form):
                             city.id_city                             
                         FROM
                             public.city
-                           
                         order by city.city_name"""                                                     
         cur.execute(city_query)        
         data = cur.fetchall()
