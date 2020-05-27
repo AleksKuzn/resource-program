@@ -719,8 +719,8 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
         cur = self.conn.cursor()
         cur.execute(sql_query, (self.val_klemma, self.val_id_kpu, self.val_id_entr, self.val_id_flat, 
                     self.val_id_marka, self.val_coef, self.val_serial, self.box_work,
-                    self.val_date, self.val_id_house, self.val_type, self.val_coefons, self.val_type_connection)) 
-        #self.conn.commit()
+                    self.val_date, self.val_id_house, self.val_type, self.val_coefons, self.val_rs485)) 
+        self.conn.commit()
         data = cur.fetchall()
         cur.close()
         self.id_klemma=data[0][0]
@@ -737,14 +737,14 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
                 sql_query = """ INSERT INTO COUNTER(KLEMMA, ID_KPU, TYPE_COUNTER)
                                 VALUES (?, ?, ?) """
                 cur.execute(sql_query, (self.val_klemma, self.id_kpu_fdb, self.val_type))
-                #self.conn.commit()
+                self.conn.commit()
                 cur.close()
             if self.box_rs485 == True:
                 sql_query = """ INSERT INTO COUNTER(TYPE_COUNTER, SER_NUM)
                                 VALUES (?, ?) """
                 cur = fireBird.cursor()
                 cur.execute(sql_query, (self.val_type, self.val_serial))
-                #self.conn.commit()
+                self.conn.commit()
                 cur.close()
         except:
             print (traceback.format_exc())
@@ -817,10 +817,9 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
             self.val_date = self.dateEdit_dateInstall.date().toString("yyyy-MM-dd")
             self.val_house_counter = self.checkBox_type.isChecked()
             self.box_work = self.checkBox.isChecked()
-            self.box_rs485 = self.checkBox_rs485.isChecked()
-            self.val_type_connection = 2 if self.box_rs485 else 1 
+            self.val_rs485 = 2 if self.checkBox_rs485.isChecked() else 1 
             if self.box_work:
-                if self.box_rs485==False:
+                if self.val_rs485 == 1:
                     if self.val_serKpu == None: 
                         self.lineEdit_serKpu.setStyleSheet('background : #FDDDE6;')
                         self.flag_work = False
@@ -830,7 +829,7 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
                     if self.val_coef == None:
                         self.lineEdit_coef.setStyleSheet('background : #FDDDE6;')
                         self.flag_work = False
-                if self.box_rs485:    
+                if self.val_rs485 == 2:    
                     if self.val_serial == None:
                         self.lineEdit_serial.setStyleSheet('background : #FDDDE6;')
                         self.flag_work = False
@@ -858,7 +857,7 @@ class Add_Pu(QtWidgets.QWidget, add_PU_ui.Ui_Form):
                 self.insert_pu()
                 self.label.setText('id_klemma = ' + str(self.id_klemma))
                 QMessageBox.information(self, 'Информация', 'ПУ успешно добавлен')
-                if self.box_rs485 == False:
+                if self.val_rs485 == 1:
                     self.resize(800,300)
                     self.widget.setEnabled(False)
                     self.widget_stZn.show()
@@ -1023,7 +1022,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                             WHERE ID_KLEMMA=?"""
             cur = fireBird.cursor()            
             cur.execute(sql_query, (self.id_klemma_fdb, )) 
-            #self.conn.commit()
+            self.conn.commit()
             cur.close()
         except:
             print (traceback.format_exc())
@@ -1082,7 +1081,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                             counter.id_klemma, counter.working_capacity
                         FROM
                             cnt.counter"""
-        counter_query  = counter_query + " WHERE counter.serial_number = '" + str(self.val_serialNew)+"'"
+        counter_query  = counter_query + " WHERE counter.serial_number = '" + str(self.val_ser_num_pu)+"'"
         cur.execute(counter_query)   
         self.list_counter = cur.fetchall()
         if len(self.list_counter)==0: self.id_pu = 0 
@@ -1147,7 +1146,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                             cnt.kpu
                         inner join public.flat
                             on flat.id_entr = kpu.id_entr"""
-        kpu_query  = kpu_query + " WHERE kpu.ser_num = " + str(self.val_serKpuNew)
+        kpu_query  = kpu_query + " WHERE kpu.ser_num = " + str(self.val_ser_num_kpu)
         if self.val_id_entr != None:
             kpu_query  = kpu_query + " AND kpu.id_entr = " + str(self.val_id_entr)
             self.text = 'На заданном адресе не установлен данный КПУ'
@@ -1342,14 +1341,15 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                         id_marka, coefficient, serial_number, working_capacity, 
                         date_install, id_house, type_counter, consumption_coeff, type_connection)                                                                                             
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id_klemma;"""
-        cur.execute(sql_query, (self.val_klemma, self.val_id_kpuNew, self.val_id_entr, self.id_flat, 
-                    self.val_id_markaNew, self.val_coefNew, self.val_serialNew, self.box_workNew,
-                    self.val_date_installNew, self.id_house, self.id_type_counter, self.val_coefonsNew, self.val_type_connectionNew)) 
+        cur.execute(sql_query, (self.val_klemma, self.val_id_kpu, self.val_id_entr, self.id_flat, 
+                    self.val_id_marka, self.val_coefficient, self.val_ser_num_pu, self.val_workability,
+                    self.val_date_install, self.id_house, self.id_type_counter, self.val_consumption_coeff, self.val_rs485)) 
         self.conn.commit()
         data = cur.fetchall()
         cur.close()
         self.id_pu=data[0][0]
-        self.label.setText('id_klemma = ' + str(self.id_pu))
+        print(self.id_pu)
+        #self.label.setText('id_klemma = ' + str(self.id_pu))
 
     def insert_flat(self):
         self.val_id_entr = int(self.list_id_entrance[self.comboBox_entrAdd.currentIndex()])
@@ -1369,7 +1369,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
     
     def insert_fdb(self,fireBird):
         try:
-            if self.box_rs485 == False:
+            if self.val_rs485 == 1:
                 sql_query = """ SELECT ID_KPU FROM KPU 
                                 WHERE TYPE_KPU = ? AND ADRESS = ? """
                 cur = fireBird.cursor()
@@ -1379,14 +1379,14 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                 sql_query = """ INSERT INTO COUNTER(KLEMMA, ID_KPU, TYPE_COUNTER)
                                 VALUES (?, ?, ?) """
                 cur.execute(sql_query, (self.val_klemma, self.id_kpu_fdb, self.val_type_counter))
-                #self.conn.commit()
+                self.conn.commit()
                 cur.close()
-            if self.box_rs485 == True:
+            if self.val_rs485 == 2:
                 sql_query = """ INSERT INTO COUNTER(TYPE_COUNTER, SER_NUM)
                                 VALUES (?, ?) """
                 cur = fireBird.cursor()
                 cur.execute(sql_query, (self.val_type_counter, self.val_ser_num_pu))
-                #self.conn.commit()
+                self.conn.commit()
                 cur.close()
         except:
             print (traceback.format_exc())
@@ -1395,27 +1395,31 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
         cur = self.conn.cursor()
         sql_query = """INSERT INTO cnt.counter_replace(id_old_counter, id_new_counter, date_replace)
                         VALUES (%s, %s, %s)"""
-        cur.execute(sql_query, (self.id_counter, self.id_pu, self.val_date_installNew)) 
+        cur.execute(sql_query, (self.id_counter, self.id_pu, self.val_date_install)) 
         self.conn.commit()
         cur.close()
     
     def open_replace(self):
-        self.resize(900,350)
-        self.widget_puNew.show()
-        self.label_errorNew.hide()
-        self.label_error.hide()
-        self.tabWidget.setCurrentIndex(2)
-        self.pushButton_save.setEnabled(False)
-        self.pushButton_replace.setEnabled(False)
-        self.pushButton_addStart.setEnabled(False)
-        self.lineEdit_serKpuNew.setText('' if self.ser_num_kpu==None else str(self.ser_num_kpu))
-        self.lineEdit_klemmaNew.setText('' if self.klemma==None else str(self.klemma))
-        self.lineEdit_coefNew.setText('' if self.coefficient==None else str(self.coefficient))
-        self.lineEdit_coefonsNew.setText('' if self.consumption_coeff==None else str(self.consumption_coeff))
-        self.comboBox_markaNew.setCurrentText(self.marka)
-        self.checkBox.setChecked(False)
-        if self.tableWidget_dateVal.rowCount() > 0: self.spinBox_impNew.setValue(float(self.tableWidget_dateVal.item(0,2).text()))
-    
+        try:
+            self.resize(900,350)
+            self.widget_puNew.show()
+            self.label_errorNew.hide()
+            self.label_error.hide()
+            self.tabWidget.setCurrentIndex(2)
+            self.pushButton_save.setEnabled(False)
+            self.pushButton_replace.setEnabled(False)
+            self.pushButton_addStart.setEnabled(False)
+            self.lineEdit_serKpuNew.setText('' if self.ser_num_kpu==None else str(self.ser_num_kpu))
+            self.lineEdit_klemmaNew.setText('' if self.klemma==None else str(self.klemma))
+            self.lineEdit_coefNew.setText('' if self.coefficient==None else str(self.coefficient))
+            self.lineEdit_coefonsNew.setText('' if self.consumption_coeff==None else str(self.consumption_coeff))
+            self.comboBox_markaNew.setCurrentText(self.marka)
+            self.checkBox.setChecked(False)
+            self.checkBox_rs485New.setChecked(False if self.type_connection == 1 else True)
+            if self.tableWidget_dateVal.rowCount() > 0 and self.tableWidget_dateVal.item(0,2).text()!='': self.spinBox_impNew.setValue(float(self.tableWidget_dateVal.item(0,2).text()))
+        except:
+            print (traceback.format_exc())
+            
     def paint_text(self,name_label,text,color_text):
         pal = name_label.palette()
         pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor(color_text))
@@ -1434,51 +1438,49 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
             self.flag_workNew = True
             flag = False
             text='Введено некорректное значение'
-            self.val_serKpuNew = self.lineEdit_serKpuNew.text()
-            if self.val_serKpuNew == '': self.val_serKpuNew = None
+            self.val_ser_num_kpu = self.lineEdit_serKpuNew.text()
+            if self.val_ser_num_kpu == '': self.val_ser_num_kpu = None
             self.val_klemma = str(self.lineEdit_klemmaNew.text())
             self.val_klemma = None if self.val_klemma == '' else int(self.val_klemma)
-            self.val_coefNew = str(self.lineEdit_coefNew.text())
-            self.val_coefNew = None if self.val_coefNew == '' else int(self.val_coefNew)
-            self.val_coefonsNew = str(self.lineEdit_coefonsNew.text())
-            self.val_coefonsNew = 1 if self.val_coefonsNew == '' else int(self.val_coefonsNew)
-            self.val_id_markaNew = int(self.list_id_marka[self.comboBox_markaNew.currentIndex()])
-            if self.val_id_markaNew == 0: self.val_id_markaNew = None
-            self.val_date_installNew = self.dateEdit_dateInstall.date().toString("yyyy-MM-dd")
-            self.date_valNew = self.dateTimeEdit_dateNew.dateTime().toString("yyyy-MM-dd hh:mm:00")
-            self.val_noteNew = str(self.textEdit_noteNew.toPlainText())
-            self.box_workNew = self.checkBoxNew.isChecked()
-            self.box_rs485New = self.checkBox_rs485New.isChecked()
-            self.val_type_connectionNew = 2 if self.box_rs485 else 1 
-            self.box_startZn = self.checkBox_startZn.isChecked()
-            self.val_serialNew = str(self.lineEdit_serialNew.text())
-            if self.val_serialNew == '': self.val_serialNew = None
-            self.val_ser_num_pu = self.ser_num_pu
-            if self.box_workNew:
-                if self.box_rs485New==False:
-                    if self.val_serKpuNew == None:
+            self.val_coefficient = str(self.lineEdit_coefNew.text())
+            self.val_coefficient = None if self.val_coefficient == '' else int(self.val_coefficient)
+            self.val_consumption_coeff = str(self.lineEdit_coefonsNew.text())
+            self.val_consumption_coeff = 1 if self.val_consumption_coeff == '' else int(self.val_consumption_coeff)
+            self.val_id_marka = int(self.list_id_marka[self.comboBox_markaNew.currentIndex()])
+            if self.val_id_marka == 0: self.val_id_marka = None
+            self.val_date_install = self.dateEdit_dateInstall.date().toString("yyyy-MM-dd")
+            self.val_start_date = self.dateTimeEdit_dateNew.dateTime().toString("yyyy-MM-dd hh:mm:00")
+            self.val_note = str(self.textEdit_noteNew.toPlainText())
+            self.val_workability = self.checkBoxNew.isChecked()
+            self.val_rs485 = 2 if self.checkBox_rs485New.isChecked() else 1 
+            self.val_st_value = self.checkBox_startZn.isChecked()
+            self.val_ser_num_pu = str(self.lineEdit_serialNew.text())
+            if self.val_ser_num_pu == '': self.val_ser_num_pu = None
+            if self.val_workability:
+                if self.val_rs485==False:
+                    if self.val_ser_num_kpu == None:
                         self.lineEdit_serKpuNew.setStyleSheet('background : #FDDDE6;')
                         self.flag_workNew = False
                     if self.val_klemma == None:
                         self.lineEdit_klemmaNew.setStyleSheet('background : #FDDDE6;')
                         self.flag_workNew = False
-                    if self.val_coefNew == None:
+                    if self.val_coefficient == None:
                         self.lineEdit_coefNew.setStyleSheet('background : #FDDDE6;')
                         self.flag_workNew = False
-                if self.box_rs485New:
-                    if self.val_serialNew == None:
+                if self.val_rs485:
+                    if self.val_ser_num_pu == None:
                         self.lineEdit_serialNew.setStyleSheet('background : #FDDDE6;')
                         self.flag_workNew = False
-            if self.val_serialNew != None: 
+            if self.val_ser_num_pu != None: 
                 self.find_counter()
                 if self.id_pu != 0 and self.work == True:
                     self.select()
-                    text='ПУ с серийным номером '+str(self.val_serialNew)+' уже используется. Город '+str(self.city_name)+', улица '+str(self.street_name)+', дом '+str(self.house_number)+', квартира '+str(self.flat)+', серийный номер КПУ = '+str(self.ser_num_kpu)
+                    text='ПУ с серийным номером '+str(self.val_ser_num_pu)+' уже используется. Город '+str(self.city_name)+', улица '+str(self.street_name)+', дом '+str(self.house_number)+', квартира '+str(self.flat)+', серийный номер КПУ = '+str(self.ser_num_kpu)
                     QMessageBox.warning(self, 'Внимание', text)
                     self.flag_workNew = False
                 if self.id_pu != 0 and self.work == False:
                     self.select()
-                    text='ПУ с серийным номером '+str(self.val_serialNew)+' имеется в БД. Город '+str(self.city_name)+', улица '+str(self.street_name)+', дом '+str(self.house_number)+', квартира '+str(self.flat)+', серийный номер КПУ = '+str(self.ser_num_kpu)
+                    text='ПУ с серийным номером '+str(self.val_ser_num_pu)+' имеется в БД. Город '+str(self.city_name)+', улица '+str(self.street_name)+', дом '+str(self.house_number)+', квартира '+str(self.flat)+', серийный номер КПУ = '+str(self.ser_num_kpu)
                     msg = QMessageBox()
                     msg.setIcon(QMessageBox.Information)
                     msg.setWindowTitle("Внимание")
@@ -1491,22 +1493,22 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                         flag = True
                     else: self.flag_workNew = False
             self.find_id_entr()        
-            if self.val_serKpuNew != None: self.findKpuNew()
+            if self.val_ser_num_kpu != None: self.findKpuNew()
             else: self.val_id_kpuNew = None
             if self.flag_workNew:
                 self.update_off()
                 self.select_parameters_firebird()
                 self.create_connection_firebird()
-                if self.box_workNew: 
+                if self.val_workability: 
                     self.find_fdb_counter(self.connection)
                     self.update_fdb(self.connection)
                 else: self.deleted_fdb(self.connection) 
                 if flag == True: self.update_replace()
-                else: self.insert_counter
-                if self.val_noteNew != '': self.update_counter_history()
+                else: self.insert_counter()
+                if self.val_note != '': self.update_counter_history()
                 self.insert_counter_replace()
-                if self.box_startZn:
-                    self.date_val = self.date_valNew
+                if self.val_st_value:
+                    self.date_val = self.val_start_date
                     self.st_value = self.doubleSpinBox_valNew.value()
                     self.impulse_value = self.spinBox_impNew.value()
                     self.insert_start_value()
@@ -1515,6 +1517,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                 self.paint_text(self.label_error,'ПУ успешно заменен',"green")
                 self.select()
                 self.filling()
+                self.tabWidget.setCurrentIndex(0)
                 self.select_start_value()
                 self.select_history()
                 self.show_value()
@@ -1766,7 +1769,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
         sql_query = """ UPDATE cnt.counter
                         SET working_capacity=False, date_deinstall=%s
                         WHERE id_klemma=%s"""
-        cur.execute(sql_query, (self.val_date_installNew, self.id_counter))               
+        cur.execute(sql_query, (self.val_date_install, self.id_counter))               
         self.conn.commit()
         cur.close()
     
@@ -1777,7 +1780,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                         date_install=%s, date_deinstall=null, id_house=%s, type_connection=%s
                         WHERE id_klemma=%s"""
         cur.execute(sql_query, (self.val_klemma, self.val_id_kpu, self.val_id_entr, self.id_flat, 
-            self.box_workNew, self.val_date_installNew, self.id_house, self.val_type_connectionNew, self.id_pu)) 
+            self.val_workability, self.val_date_install, self.id_house, self.val_rs485, self.id_pu)) 
         self.conn.commit()    
         cur.close()
 
@@ -1788,16 +1791,17 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                         WHERE id =(SELECT MAX(id)
                                    FROM cnt.counter_history
                                    WHERE id_klemma = %s)"""
-        cur.execute(sql_query, (self.val_noteNew, self.id_pu))       
+        cur.execute(sql_query, (self.val_note, self.id_pu))       
         self.conn.commit()
         cur.close()
  
     def update_fdb(self,fireBird):
         try:
-            if self.box_rs485 == False:
+            if self.val_rs485 == 1:
                 if self.val_ser_num_kpu != self.ser_num_kpu :
                     sql_query = """ SELECT ID_KPU FROM KPU 
                                     WHERE TYPE_KPU = ? AND ADRESS = ? """
+                    cur = fireBird.cursor()
                     cur.execute(sql_query, (self.val_type_kpu, self.val_adress))
                     data = cur.fetchall()
                     self.id_kpu_fdb = data[0][0]
@@ -1805,46 +1809,41 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                                     SET ID_KPU=?
                                 WHERE ID_KLEMMA=?"""
                     cur.execute(sql_query, (self.id_kpu_fdb, self.id_klemma_fdb)) 
-                    #self.conn.commit()
+                    self.conn.commit()
                     cur.close()
                 if self.val_klemma != self.klemma :
                     sql_query = """ UPDATE COUNTER
                                     SET KLEMMA = ?
                                 WHERE ID_KLEMMA=?"""
+                    cur = fireBird.cursor()
                     cur.execute(sql_query, (self.val_klemma, self.id_klemma_fdb)) 
-                    #self.conn.commit()
+                    self.conn.commit()
                     cur.close() 
                 if self.type_connection == 2:
                     sql_query = """ UPDATE COUNTER
                                     SET SER_NUM=?
                                 WHERE ID_KLEMMA=?"""
-                    cur.execute(sql_query, (self.ser_num_pu, self.id_klemma_fdb)) 
-                    #self.conn.commit()
+                    cur = fireBird.cursor() 
+                    cur.execute(sql_query, (self.val_ser_num_pu, self.id_klemma_fdb)) 
+                    self.conn.commit()
                     cur.close()
-            if self.box_rs485 == True:
+            if self.val_rs485 == 2:
                 if self.val_ser_num_pu != self.ser_num_pu:
                     sql_query = """ UPDATE COUNTER
                                     SET SER_NUM=?
                                 WHERE ID_KLEMMA=?"""
                     cur = fireBird.cursor()
-                    cur.execute(sql_query, (self.ser_num_pu, self.id_klemma_fdb))
-                    #self.conn.commit()
+                    cur.execute(sql_query, (self.val_ser_num_pu, self.id_klemma_fdb))
+                    self.conn.commit()
                     cur.close()
                 if self.type_connection == 1:
                     sql_query = """ UPDATE COUNTER
                                     SET KLEMMA=NULL, ID_KPU=NULL
                                 WHERE ID_KLEMMA=?"""
+                    cur = fireBird.cursor()            
                     cur.execute(sql_query, (self.id_klemma_fdb,)) 
-                    #self.conn.commit()
+                    self.conn.commit()
                     cur.close()
-            if self.val_type_counter != self.type_counter :
-                sql_query = """ UPDATE COUNTER
-                                SET TYPE_COUNTER=? 
-                            WHERE ID_KLEMMA=?"""
-                cur = fireBird.cursor()
-                cur.execute(sql_query, (self.val_type_counter, self.id_klemma_fdb))
-                #self.conn.commit()
-                cur.close()
         except:
             print (traceback.format_exc())
     
@@ -1856,11 +1855,11 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
         sql_query = """ UPDATE cnt.counter
                         SET klemma=%s, id_kpu=%s, id_entr=%s, id_flat=%s, id_marka=%s, 
                         coefficient=%s, serial_number=%s, working_capacity=%s, date_install=%s, 
-                        date_deinstall=%s, id_house=%s, type_counter=%s, consumption_coeff=%s
+                        date_deinstall=%s, id_house=%s, type_counter=%s, consumption_coeff=%s, type_connection=%s
                         WHERE id_klemma=%s"""
         cur.execute(sql_query, (self.val_klemma, self.val_id_kpu, self.val_id_entr, self.val_id_flat, 
             self.val_id_marka, self.val_coefficient, self.val_ser_num_pu, self.val_workability, self.val_date_install, 
-            self.val_date_deinstal, self.val_id_house, self.val_type_counter, self.val_consumption_coeff, self.id_pu))               
+            self.val_date_deinstal, self.val_id_house, self.val_type_counter, self.val_consumption_coeff, self.val_rs485, self.id_pu))               
         self.conn.commit()
         cur.close()
      
@@ -1882,6 +1881,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
             else: self.val_id_house = None 
             self.val_street = self.comboBox_street.currentText()
             self.val_city = self.comboBox_city.currentText()
+            self.val_house = self.comboBox_city.currentText()
             self.val_entr = str(self.comboBox_entr.currentText())
             if self.val_entr != '': self.val_id_entr = int(self.list_id_entrance[self.comboBox_entr.currentIndex()])
             else: self.val_id_entr = None
@@ -1901,14 +1901,14 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
             self.val_id_marka = int(self.list_id_marka[self.comboBox_marka.currentIndex()])
             if self.val_id_marka == 0: self.val_id_marka = None
             self.val_date_install = self.dateEdit_install.date().toString("yyyy-MM-dd")
-            if self.val_date_install == '14.09.1752': self.val_date_install = None
+            if self.val_date_install == '1752-09-14': self.val_date_install = None
             self.val_date_deinstal = self.dateEdit_deinstall.date().toString("yyyy-MM-dd")
-            if self.val_date_deinstal == '31.12.9999': self.val_date_deinstal = None
+            if self.val_date_deinstal == '9999-12-31': self.val_date_deinstal = None
             self.val_house_counter = self.checkBox_type.isChecked()
             self.val_workability = self.checkBox.isChecked()
             self.val_rs485 = 1 if self.checkBox_rs485.isChecked() == False else 2
             if self.val_workability:
-                if self.box_rs485==False:
+                if self.val_rs485 == 1:
                     if self.val_ser_num_kpu == None: 
                         self.lineEdit_serKpu.setStyleSheet('background : #FDDDE6;')
                         self.flag_work = False
@@ -1918,7 +1918,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
                     if self.val_coefficient == None:
                         self.lineEdit_coef.setStyleSheet('background : #FDDDE6;')
                         self.flag_work = False
-                if self.box_rs485:
+                if self.val_rs485 == 2:
                     if self.val_ser_num_pu == None:
                         self.lineEdit_serial.setStyleSheet('background : #FDDDE6;')
                         self.flag_work = False
@@ -1940,7 +1940,7 @@ class Info_Pu(QtWidgets.QWidget, info_PU_ui.Ui_Form):
             if self.val_ser_num_kpu != None: self.findKpu()
             else: self.val_id_kpu = None
             if self.flag_work:
-                if self.val_workability != self.workability or (self.val_workability == True and (self.val_klemma != self.klemma or self.val_type_counter != self.type_counter or (self.val_rs485 == True and self.val_ser_num_pu != self.ser_num_pu) or (self.val_rs485 == False and self.val_ser_num_kpu != self.ser_num_kpu))):
+                if self.val_workability != self.workability or (self.val_workability == True and (self.val_klemma != self.klemma or self.val_type_counter != self.id_type_counter or (self.val_rs485 == True and self.val_ser_num_pu != self.ser_num_pu) or (self.val_rs485 == False and self.val_ser_num_kpu != self.ser_num_kpu))):
                     self.select_parameters_firebird()
                     self.create_connection_firebird()
                     if self.workability==True and self.val_workability==False:
