@@ -1,0 +1,7 @@
+[Settings]
+database = counters
+user = counters
+password = counters
+host = 192.168.105.30
+port = 5432
+

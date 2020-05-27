@@ -6,15 +6,62 @@ import psycopg2
 import fdb
 import traceback
 import configparser
-import os
 import menu_ui, scaut, kpu, pu, connected_BD_ui
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QWidget, QDesktopWidget, QApplication
 from PyQt5.Qt import *
 
-def create_connection(db_name, db_user, db_password, db_host, db_port):
+# def create_connection(db_name, db_user, db_password, db_host, db_port):
+        # connection = None
+        # try:
+            # connection = psycopg2.connect(
+                # database=db_name,
+                # user=db_user,
+                # password=db_password,
+                # host=db_host,
+                # port=db_port,
+            # )
+            # print("Connection to the PostgreSQL DB successful.\nname = ",db_name,"\nuser = ",db_user,"\npassword = ",db_password,"\nhost = ",db_host,"\nport = ",db_port)
+        # # except OperationalError as e:
+            # # print(f"The error '{e}' occurred")
+        # except:
+            # msg = QMessageBox()
+            # msg.setWindowTitle("Ошибка")
+            # msg.setText("Не удалось подключиться к базе данных:") 
+            # msg.setInformativeText("name = "+db_name+"\nuser = "+db_user+"\npassword = "+db_password+"\nhost = "+db_host+"\nport = "+db_port)
+            # msg.exec()
+        # return connection    
+
+class Connection_BD(QtWidgets.QWidget, connected_BD_ui.Ui_Form):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.center()  
+        self.setWindowTitle('Подключение к базе данных PostgreSQL')
+        self.pushButton_continue.clicked.connect(self.open_menu)
+        self.show() 
+    
+    def center(self):
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+    
+    def open_menu(self):
+        try:
+            self.conn = self.create_connection()
+            self.menu = Menu(self.conn)
+        except: print (traceback.format_exc())
+    
+     
+    def create_connection(self):
         connection = None
         try:
+            db_name = self.lineEdit_database.text()
+            db_user = self.lineEdit_user.text()
+            db_password = self.lineEdit_password.text()
+            db_host = self.lineEdit_host.text()
+            db_port = self.lineEdit_port.text()
             connection = psycopg2.connect(
                 database=db_name,
                 user=db_user,
@@ -23,19 +70,17 @@ def create_connection(db_name, db_user, db_password, db_host, db_port):
                 port=db_port,
             )
             print("Connection to the PostgreSQL DB successful.\nname = ",db_name,"\nuser = ",db_user,"\npassword = ",db_password,"\nhost = ",db_host,"\nport = ",db_port)
-        # except OperationalError as e:
-            # print(f"The error '{e}' occurred")
         except:
             msg = QMessageBox()
             msg.setWindowTitle("Ошибка")
-            msg.setText("Не удалось подключиться к базе данных, изменить настройки конфигураций можно в файле \"config.txt\":") 
+            msg.setText("Не удалось подключиться к базе данных:") 
             msg.setInformativeText("name = "+db_name+"\nuser = "+db_user+"\npassword = "+db_password+"\nhost = "+db_host+"\nport = "+db_port)
             msg.exec()
-        return connection    
-     
+        return connection  
+        
 class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, conn):
+        super().__init__()
         self.setupUi(self)
         self.center()        
         self.setWindowTitle('Главное меню')
@@ -50,8 +95,8 @@ class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
         self.label_replacePU.show()
         self.tableWidget_lineState.hide()
         self.label_lineState.hide()
-        self.select_kpu()
-        self.select_pu()
+        self.select_kpu(conn)
+        self.select_pu(conn)
         self.show()
 
     def center(self):
@@ -60,16 +105,16 @@ class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
                     
-    def open_scaut(self):
+    def open_scaut(self,conn):
         self.scaut = scaut.Scaut(conn)
 
-    def open_kpu(self):
+    def open_kpu(self,conn):
         self.kpu = kpu.Kpu(conn,'-1')
 
-    def open_pu(self):
+    def open_pu(self,conn):
         self.pu = pu.Pu(conn,'-1')
 
-    def select_kpu(self):
+    def select_kpu(self,conn):
         self.tableWidget_replaceKPU.setRowCount(0)       
         sql_query = """ SELECT  old.ser_num, new.ser_num, kpu_replace.date_replace
                             FROM
@@ -89,7 +134,7 @@ class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
         cur.close()    
         self.tableWidget_replaceKPU.resizeColumnsToContents()
         
-    def select_pu(self):
+    def select_pu(self,conn):
         self.tableWidget_replacePU.setRowCount(0)       
         sql_query = """ SELECT  old.serial_number, new.serial_number, counter_replace.date_replace
                             FROM
@@ -109,7 +154,7 @@ class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
         cur.close()    
         self.tableWidget_replacePU.resizeColumnsToContents()
 
-    def select_line_state(self):
+    def select_line_state(self,conn):
         self.tableWidget_replaceKPU.hide()
         self.tableWidget_replacePU.hide()
         self.label_replaceKPU.hide()
@@ -163,9 +208,7 @@ class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
                             and (date_value.line_state = 1								
                             or date_value.empty = 1)								
                             and working_capacity = 'TRUE'
-                            
                           order by city.city_name DESC, street.street_name DESC, cast(substring(house.house_number from \'^[0-9]+\') as integer) DESC, cast(entrance.num_entr as integer) DESC, flat.num_flat DESC, date_value.date_val DESC, counter.type_counter DESC"""
-  
         cur = conn.cursor()
         cur.execute(sql_query)   
         data = cur.fetchall()
@@ -176,46 +219,12 @@ class Menu(QtWidgets.QMainWindow, menu_ui.Ui_MainWindow):
                     self.tableWidget_lineState.setItem(0,k,item)               
         cur.close()    
         self.tableWidget_lineState.resizeColumnsToContents()
-    
-    def test(self):
-        try: 
-            sql_query = "SELECT * FROM KPU"
-            cur = fireBird.cursor()
-            cur.execute(sql_query)   
-            data = cur.fetchall()
-            print(len(data))
-        except:
-            print (traceback.format_exc())
-
-def createConfig(path):
-    config = configparser.ConfigParser()
-    config.add_section("Settings")
-    config.set("Settings", "database", "counters")
-    config.set("Settings", "user", "counters")
-    config.set("Settings", "password", "counters")
-    config.set("Settings", "host", "192.168.105.30")
-    config.set("Settings", "port", "5432")
-    with open(path, "w") as config_file:
-        config.write(config_file)
-
-def crudConfig(path):
-    if not os.path.exists(path):
-        createConfig(path)
-    config = configparser.ConfigParser()
-    config.read(path)
-    db_name = config.get("Settings", "database")
-    db_user = config.get("Settings", "user")
-    db_password = config.get("Settings", "password")
-    db_host = config.get("Settings", "host")
-    db_port = config.get("Settings", "port")
-    return db_name,db_user,db_password,db_host,db_port
-    
+            
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
-    path = "config.txt"
-    config = crudConfig(path)
-    conn = create_connection(config[0],config[1],config[2],config[3],config[4])
-    ex = Menu()
+    #conn = create_connection("counters", "counters", "counters", "192.168.105.30", "5432")
+    #ex = Menu()
+    ex = Connection_BD()
     sys.exit(app.exec_())
     conn.close()
     
